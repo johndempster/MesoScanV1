@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Copyright Barbara Boettcher,Tatiana T. Marquez-Lago,Mathias Bayer,Eric L. Weiss,Yves Barral 'Nuclear envelope morphology constrains diffusion and promotes asymmetric protein segregation in closed mitosis' jcb. 2012. DOI: 10.1083/jcb.201112117. Use covered by the terms and conditions as outlined at http://www.rupress.org/site/subscriptions/terms.xhtml --><!-- Warning: this comment is an OME-XML metadata block, which contains crucial dimensional parameters and other important metadata. Please edit cautiously (if at all), and back up the original data before doing so. For more information, see the OME-TIFF web site: http://loci.wisc.edu/ome/ome-tiff.html. -->
+<OME xmlns:AML="http://www.openmicroscopy.org/Schemas/AnalysisModule/2008-09" xmlns:Bin="http://www.openmicroscopy.org/Schemas/BinaryFile/2008-09" xmlns:MLI="http://www.openmicroscopy.org/Schemas/MLI/2008-09" xmlns:SA="http://www.openmicroscopy.org/Schemas/SA/2008-09" xmlns:OME="http://www.openmicroscopy.org/Schemas/OME/2008-09" xmlns:SPW="http://www.openmicroscopy.org/Schemas/SPW/2008-09" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:CA="http://www.openmicroscopy.org/Schemas/CA/2008-09" xmlns:STD="http://www.openmicroscopy.org/Schemas/STD/2008-09" xmlns:CLI="http://www.openmicroscopy.org/Schemas/CLI/2008-09" xmlns="http://www.openmicroscopy.org/Schemas/OME/2008-09" xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2008-09 http://www.openmicroscopy.org/Schemas/OME/2008-09/ome.xsd http://www.openmicroscopy.org/Schemas/BinaryFile/2008-09 http://www.openmicroscopy.org/Schemas/BinaryFile/2008-09/BinaryFile.xsd http://www.openmicroscopy.org/Schemas/CA/2008-09 http://www.openmicroscopy.org/Schemas/CA/2008-09/CA.xsd http://www.openmicroscopy.org/Schemas/SPW/2008-09 http://www.openmicroscopy.org/Schemas/SPW/2008-09/SPW.xsd http://www.openmicroscopy.org/Schemas/STD/2008-09 http://www.openmicroscopy.org/Schemas/STD/2008-09/STD.xsd" UUID="f6543779-5254-4d7f-abf6-f060dec48eae">
+<Experimenter ID="urn:lsid:export.openmicroscopy.org:Experimenter:9a19817c-74c5-4432-9494-8cffa84d3446_5566"/>
+<Group ID="urn:lsid:export.openmicroscopy.org:ExperimenterGroup:9a19817c-74c5-4432-9494-8cffa84d3446_5668:35539941"/>
+<Image DefaultPixels="urn:lsid:export.openmicroscopy.org:Pixels:9a19817c-74c5-4432-9494-8cffa84d3446_136434:35554897" ID="urn:lsid:export.openmicroscopy.org:Image:9a19817c-74c5-4432-9494-8cffa84d3446_136434:35592426" Name="FLIP experiment on NLS-3GFP (gray) expressing cells during late stages of nuclear division">
+<CreationDate>2012-06-15 00:57:03.0</CreationDate>
+<ExperimenterRef ID="urn:lsid:export.openmicroscopy.org:Experimenter:9a19817c-74c5-4432-9494-8cffa84d3446_5566"/>
+<Description>FLIP experiment on NLS-3GFP (gray) expressing cells during late stages of nuclear division over a 87.4s time course  with images acquired every 1.5s.</Description>
+<GroupRef ID="urn:lsid:export.openmicroscopy.org:ExperimenterGroup:9a19817c-74c5-4432-9494-8cffa84d3446_5668:35539941"/>
+<LogicalChannel ID="urn:lsid:export.openmicroscopy.org:LogicalChannel:9a19817c-74c5-4432-9494-8cffa84d3446_105732:35554896" SamplesPerPixel="1"/>
+<Pixels BigEndian="true" DimensionOrder="XYCZT" ID="urn:lsid:export.openmicroscopy.org:Pixels:9a19817c-74c5-4432-9494-8cffa84d3446_136434:35554897" PixelType="uint8" SizeC="1" SizeT="60" SizeX="71" SizeY="72" SizeZ="1">
+<TiffData>
+<UUID FileName="__omero_export__7897524396282448118.ome.tiff">f6543779-5254-4d7f-abf6-f060dec48eae</UUID>
+</TiffData>
+</Pixels>
+</Image>
+</OME>
