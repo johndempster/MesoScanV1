@@ -435,6 +435,7 @@ type
     procedure SetPMTVoltage(
               PMTNum : Integer ;
               PercentMax : Double ) ;
+    procedure SetAllPMTVoltages ;
 
     procedure CalculateMaxContrast ;
 
@@ -596,7 +597,7 @@ begin
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 05/11/19';
+    Caption := Caption + ' 06/11/19';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -1497,7 +1498,7 @@ procedure TMainFrm.PercentDone(
           var n : Integer ;
           var NumPixels : Integer ) ;
 begin
-     PCDone := PCDone + (n/NumPixels)*25.0 ;
+     PCDone := PCDone + (n/NumPixels)*20.0 ;
      n := 0 ;
      meStatus.Lines[0] := format('Wait: Creating XY scan waveform %.0f%%',[PCDone]) ;
      Application.ProcessMessages ;
@@ -2071,10 +2072,7 @@ begin
     PMTGain[2] := cbPMTGain2.ItemIndex ;
     PMTGain[3] := cbPMTGain3.ItemIndex ;
 
-    SetPMTVoltage( 0, edPMTVolts0.Value ) ;
-    SetPMTVoltage( 1, edPMTVolts1.Value ) ;
-    SetPMTVoltage( 2, edPMTVolts2.Value ) ;
-    SetPMTVoltage( 3, edPMTVolts3.Value ) ;
+    SetAllPMTVoltages ;
 
     nSamples := Max(Round(10.0/PixelDwellTime) div NumXPixels,1)*NumXPixels ;
     LabIO.ADCToMemoryExtScan( DeviceNum,
@@ -2106,6 +2104,19 @@ begin
     InitialiseImage ;
 
     end;
+
+procedure TMainFrm.SetAllPMTVoltages ;
+// --------------------
+// Set all PMT voltages
+// --------------------
+begin
+
+    SetPMTVoltage( 0, edPMTVolts0.Value ) ;
+    SetPMTVoltage( 1, edPMTVolts1.Value ) ;
+    SetPMTVoltage( 2, edPMTVolts2.Value ) ;
+    SetPMTVoltage( 3, edPMTVolts3.Value ) ;
+
+end;
 
 
 procedure TMainFrm.SetPMTVoltage(
@@ -2231,10 +2242,11 @@ procedure TMainFrm.edPMTVolts0KeyPress(Sender: TObject; var Key: Char);
 begin
     if Key = #13 then
        begin
-       udPMTVolts0.Position := Round(edPMTVolts0.Value) ;
+ {      udPMTVolts0.Position := Round(edPMTVolts0.Value) ;
        udPMTVolts1.Position := Round(edPMTVolts1.Value) ;
        udPMTVolts2.Position := Round(edPMTVolts2.Value) ;
-       udPMTVolts3.Position := Round(edPMTVolts3.Value) ;
+       udPMTVolts3.Position := Round(edPMTVolts3.Value) ;}
+       SetAllPMTVoltages ;
        end;
     end;
 
@@ -2383,6 +2395,7 @@ procedure TMainFrm.udPMTVolts0ChangingEx(Sender: TObject;
 begin
     if Direction = updUp then edPMTVolts0.Value := edPMTVolts0.Value + 1.0
                          else edPMTVolts0.Value := edPMTVolts0.Value - 1.0 ;
+    SetAllPMTVoltages ;
     end;
 
 
@@ -2390,7 +2403,8 @@ procedure TMainFrm.udPMTVolts1ChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue: Integer; Direction: TUpDownDirection);
 begin
     if Direction = updUp then edPMTVolts1.Value := edPMTVolts1.Value + 1.0
-                         else  edPMTVolts1.Value := edPMTVolts1.Value - 1.0 ;
+                         else edPMTVolts1.Value := edPMTVolts1.Value - 1.0 ;
+    SetAllPMTVoltages ;
     end;
 
 
@@ -2399,6 +2413,7 @@ procedure TMainFrm.udPMTVolts2ChangingEx(Sender: TObject;
 begin
     if Direction = updUp then edPMTVolts2.Value := edPMTVolts2.Value + 1.0
                          else edPMTVolts2.Value := edPMTVolts2.Value - 1.0 ;
+    SetAllPMTVoltages ;
     end;
 
 
@@ -2407,8 +2422,8 @@ procedure TMainFrm.udPMTVolts3ChangingEx(Sender: TObject;
 begin
     if Direction = updUp then edPMTVolts3.Value := edPMTVolts3.Value + 1.0
                          else edPMTVolts3.Value := edPMTVolts3.Value - 1.0 ;
+    SetAllPMTVoltages ;
     end;
-
 
 
 procedure TMainFrm.GetImageFromPMT ;
