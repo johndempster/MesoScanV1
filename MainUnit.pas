@@ -597,7 +597,7 @@ begin
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 06/11/19';
+    Caption := Caption + ' 07/11/19';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -1083,7 +1083,8 @@ const
     MarginPixels = 16 ;
 var
     HeightWidthRatio : Double ;
-    ch : Integer ;
+    ch,Ybm,Xbm : Integer ;
+    PScanLine : PByteArray ;    // Bitmap line buffer pointer
 begin
 
      ImageGrp.ClientWidth :=  Max( ClientWidth - ImageGrp.Left - 5, 2) ;
@@ -1127,6 +1128,13 @@ begin
          YScaleToBM := (BitMap[ch].Width*Magnification*FrameHeightScale) / FrameWidth ;
 
          SetImageSize( Image[ch] ) ;
+
+         //Clear image to zeroes
+         for Ybm := 0 to BitMap[ch].Height-1 do
+             begin
+             PScanLine := BitMap[ch].ScanLine[Ybm] ;
+             for xBm := 0 to BitMap[ch].Width-1 do PScanLine[Xbm] := LUT[ch,0] ;
+             end ;
 
          end;
 
