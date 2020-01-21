@@ -42,6 +42,7 @@ unit MainUnit;
 //                 Brightness and contrast slider now work correctly
 //                 PMT gain and voltage controls no longer disabled when scanning
 //                 Image cleared to black at start of new scan
+// V1.6.9 21.01.20 Averaging image repeats can now be saved
 
 interface
 
@@ -113,11 +114,11 @@ type
     bScanZoomIn: TButton;
     ImageSizeGrp: TGroupBox;
     Label4: TLabel;
-    edNumAverages: TValidatedEdit;
+    edNumRepeats: TValidatedEdit;
     ZStackGrp: TGroupBox;
     Label5: TLabel;
     Label6: TLabel;
-    edNumZSections: TValidatedEdit;
+    edNumZsteps: TValidatedEdit;
     edNumPixelsPerZStep: TValidatedEdit;
     cbImageMode: TComboBox;
     Label1: TLabel;
@@ -194,6 +195,7 @@ type
     Image2: TImage;
     Image3: TImage;
     SavetoImageJ1: TMenuItem;
+    ckKeepRepeats: TCheckBox;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
@@ -350,9 +352,9 @@ type
     LaserControlOpen : Boolean ;
 
     // Z axis control
+    iZStep : Integer ;                  // Z Step counter
     ZSection : Integer ;                // Current Z Section being acquired
-    ZStep : Double ;                  // Spacing between Z Sections (microns)
-    NumZSections : Integer ;            // No. of Sections in Z stack
+    ZStepSize : Double ;                  // Spacing between Z Sections (microns)
     NumZSectionsAvailable : Integer ;   // No. of Sections in Z stack
     NumLinesPerZStep : Integer ;      // No. lines per Z step in XZ mode
     XZLine : Integer ;                // XZ mode line counter
@@ -392,8 +394,9 @@ type
     pImageBuf : Array[0..MaxPMT] of PSmallIntArray ; // Pointer to image buffers
 
     //PAverageBuf : PIntArray ; // Pointer to displayed image buffers
-    NumAverages : Integer ;
-    ClearAverage : Boolean ;
+    NumAverages : Integer ;     // No. of images in average
+    NumRepeats : Integer ;      // No. of image repeats acquired
+    ClearAverage : Boolean ;    // TRUE = Clear averaging buffer
 
     SnapNum : Integer ;
     ScanRequested : Integer ;
@@ -591,13 +594,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.6.8 ';
+     Caption := 'MesoScan V1.6.9 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 07/11/19';
+    Caption := Caption + ' 21/01/20';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -731,7 +734,7 @@ begin
      FrameHeightScale := 1.0 ;
 
      edNumPixelsPerZStep.Value := 1.0 ;
-     edNumZSections.Value := 10.0 ;
+     edNumZSteps.Value := 10.0 ;
 
      // Image-J program path
      ImageJPath := 'C:\ImageJ\imagej.exe';
@@ -1253,7 +1256,7 @@ begin
     // Determine number of lines per Z step (for XZ mode)
     if cbImageMode.ItemIndex = XZMode then
        begin
-       NumLinesPerZStep := Round(edNumAverages.Value) + Max(Round(ZStage.ZStepTime/LineScanTime),1);
+       NumLinesPerZStep := Round(edNumRepeats.Value) + Max(Round(ZStage.ZStepTime/LineScanTime),1);
        end
     else NumLinesPerZStep := 1 ;
 
@@ -1686,7 +1689,11 @@ begin
     if (NumZSectionsAvailable > 1) and (not bStopScan.Enabled)  then
        begin
        ZSectionPanel.Visible := True ;
-       lbZSection.Caption := format('Section %d/%d',[ZSection+1,NumZSectionsAvailable]) ;
+       if ckKeepRepeats.Checked and (edNumRepeats.Value > 1.0) then
+          lbZSection.Caption := format('Avg. %d/%d, Section %d/%d',
+                                [(ZSection mod Round(edNumRepeats.Value)) + 1,Round(edNumRepeats.Value),
+                                 (ZSection div Round(edNumRepeats.Value)) + 1,NumZSectionsAvailable div Round(edNumRepeats.Value)])
+       else lbZSection.Caption := format('Section %d/%d',[ZSection+1,NumZSectionsAvailable]) ;
        end
     else
        begin
@@ -1898,7 +1905,7 @@ begin
     end;
 
     NumAverages := 1 ;
-
+    NumRepeats := 1 ;
     ClearAverage := True ;
 
     //bStopScan.Enabled := True ;
@@ -1975,8 +1982,6 @@ begin
 
        end ;
 
-
-
       // XT line scan mode
       XTMode :
         begin
@@ -1993,7 +1998,7 @@ begin
                               else  FrameWidth := HRFrameWidth ;
 
         FrameHeightScale := 1.0 ;
-        FrameHeight := Round(edNumZSections.Value) ;
+        FrameHeight := Round(edNumZSteps.Value) ;
         end ;
 
       end ;
@@ -2016,9 +2021,9 @@ begin
     // Z sections
     ZSection := 0 ;
     NumZSectionsAvailable := 0 ;
-    ZStep := edNumPixelsPerZStep.Value*(ScanArea[iScanZoom].Width/HRFrameWidth) ;
-    edMicronsPerZStep.Value := ZStep ;
-    NumZSections := Round(edNumZSections.Value) ;
+    ZStepSize := edNumPixelsPerZStep.Value*(ScanArea[iScanZoom].Width/HRFrameWidth) ;
+    edMicronsPerZStep.Value := ZStepSize ;
+    iZStep := 0 ;
 
     // Save current position of Z stage
     ZStartingPosition := ZStage.ZPosition ;
@@ -2441,7 +2446,7 @@ procedure TMainFrm.GetImageFromPMT ;
 var
     ch,iPix,iPointer,iPointerStep,iSign,iLine,nAvg,iAvg,AvgFrameStart : Integer ;
     i,ADCStart,ADCEnd : NativeInt ;
-    NewZSection : Integer ;
+    NewZSection,ZSect : Integer ;
     Sum,y : Integer ;
     j: Integer;
 begin
@@ -2460,7 +2465,7 @@ begin
     for i := ADCStart to ADCEnd do
         begin
         ADCPointer := i ;
-        AvgBuf^[i] := AvgBuf^[i] + ADCBuf^[i] ;
+        AvgBuf^[i] := AvgBuf^[i] + ADCBuf^[i] {+ random(100)} ;
         iPix := i div NumPMTChannels ;
         ch := i mod NumPMTChannels ;
         iPointer := ADCMap^[iPix] ;
@@ -2492,7 +2497,7 @@ begin
     if cbImageMode.ItemIndex = XZMode then
        begin
        NewZSection := iLine div NumLinesPerZStep ;
-       nAvg := Max(Round(edNumAverages.Value),1) ;
+       nAvg := Max(Round(edNumRepeats.Value),1) ;
        if (NewZSection <> ZSection) and (XZLine < FrameHeight) then
           begin
           // Average lines for Z section
@@ -2514,7 +2519,7 @@ begin
           Inc(XZLine) ;
           LinesAvailableForDisplay := XZLine ;
           ZSection := NewZSection ;
-          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition, ZStage.ZPosition + ZStep );
+          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition, ZStage.ZPosition + ZStepSize );
           end;
        end
     else
@@ -2529,19 +2534,22 @@ begin
          begin
          meStatus.Lines[0] := format('Line %5d/%d (%.3f MB)',
                               [iLine,FrameHeight,ADCPointer/1048576.0]);
-         meStatus.Lines.Add(format('Average %d/%d',[NumAverages,Round(edNumAverages.Value)])) ;
+         meStatus.Lines.Add(format('Average %d/%d',[NumRepeats,Round(edNumRepeats.Value)])) ;
          end;
        XYZMode :
          begin
          meStatus.Lines[0] := format('Line %5d/%d (%.2f MB)',
                               [iLine,FrameHeight,ADCPointer/1048576.0]);
-         meStatus.Lines.Add(format('Average %d/%d',[NumAverages,Round(edNumAverages.Value)])) ;
-         meStatus.Lines.Add(format('Section %d/%d',[ZSection+1,NumZSections])) ;
+         meStatus.Lines.Add(format('Average %d/%d',[NumRepeats,Round(edNumRepeats.Value)])) ;
+
+         if ckKeepRepeats.Checked then ZSect := Ceil( (ZSection + 1) / edNumRepeats.Value)
+                                  else ZSect := ZSection + 1 ;
+         meStatus.Lines.Add(format('Section %d/%d',[ZSect,Round(edNumZSteps.Value)]))
          end;
        XZMode :
          begin
          meStatus.Lines[0] := format('Line %5d/%d (%.2f MB)',
-                              [NewZSection,NumZSections,
+                              [NewZSection,Round(edNumZSteps.Value),
                                ADCPointer/(NumLinesPerZStep*1048576.0)]);
          end;
        end;
@@ -2554,18 +2562,24 @@ begin
 
        if cbImageMode.ItemIndex = XZMode then
           begin
-          NumAverages := Round(edNumAverages.Value) + 1 ;
+          NumAverages := Round(edNumRepeats.Value) + 1 ;
           SaveRawImage( RawImagesFileName, 0 ) ;
           end
        else
           begin
-          Inc(NumAverages) ;
           SaveRawImage( RawImagesFileName, ZSection ) ;
+          Inc(NumAverages) ;
+          Inc(NumRepeats) ;
+          // If images are to be saved for later averaging increment section number
+          // otherwise only increment when averaging completed
+          if ckKeepRepeats.Checked then Inc(ZSection)
+          else if NumAverages > Round(edNumRepeats.Value) then Inc(ZSection) ;
           end;
 
-       if NumAverages <= Round(edNumAverages.Value) then
+       if NumRepeats <= Round(edNumRepeats.Value) then
           begin
           ScanRequested := 1 ;
+          if ckKeepRepeats.Checked then ClearAverage := True ;
           end
        else
           begin
@@ -2580,12 +2594,13 @@ begin
           else if cbImageMode.ItemIndex = XYZMode then
              begin
              // Increment Z position to next Section
-             Inc(ZSection) ;
-             ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStep );
-             if ZSection < NumZSections then
+             Inc(iZStep) ;
+             ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStepSize );
+             if iZStep < Round(edNumZSteps.Value) then
                 begin
                 ScanRequested := Max(Round(ZStage.ZStepTime/(Timer.Interval*0.001)),1) ;
                 NumAverages := 1 ;
+                NumRepeats := 1 ;
                 ClearAverage := True ;
                 end
              else
@@ -2853,7 +2868,7 @@ begin
                                              2*8,1,nFrames ) then Exit ;
                 ImageFile.XResolution := ScanArea[iScanZoom].Width/FrameWidth ;
                 ImageFile.YResolution := ImageFile.XResolution ;
-                ImageFile.ZResolution := ZStep ;
+                ImageFile.ZResolution := ZStepSize ;
                 ImageFile.SaveFrame( 1, PImageBuf[iPMT] ) ;
                 if not SaveAsMultipageTIFF then ImageFile.CloseFile ;
                 end
@@ -2902,8 +2917,22 @@ begin
 
      if (NumZSectionsAvailable > 1) and (not SaveAsMultipageTIFF) then
         begin
-        Result := ANSIReplaceText( FileName, '.tif',
-                  format('.%s.%d.ome.tif',[ImageNames[iChannel],iSection+1])) ;
+
+        if ckKeepRepeats.Checked then
+           begin
+           // File ending = <section no.>.<repeat no.>.tif
+           Result := ANSIReplaceText( FileName, '.tif',
+                     format('.%s.%d.%d.ome.tif',
+                                [ImageNames[iChannel],
+                                 (iSection div Round(edNumRepeats.Value)) + 1,
+                                 (iSection mod Round(edNumRepeats.Value)) + 1]));
+           end
+        else
+           begin
+           // File ending = <section no.>.tif
+           Result := ANSIReplaceText( FileName, '.tif',
+                     format('.%s.%d.ome.tif',[ImageNames[iChannel],iSection+1])) ;
+           end;
         end
      else
         begin
@@ -2911,6 +2940,7 @@ begin
                   format('.%s.ome.tif',[ImageNames[iChannel]])) ;
         end;
 end;
+
 
 procedure TMainFrm.edXPixelsKeyPress(Sender: TObject; var Key: Char);
 // --------------------------
@@ -3021,7 +3051,7 @@ begin
 
 procedure TMainFrm.SaveRawImage(
           FileName : String ;    // File to save to
-          iSection : Integer     // Image Section number
+          iSection : Integer    // Image Section number
           ) ;
 // ----------------------
 // Save raw image to file
@@ -3054,7 +3084,7 @@ begin
       FileWrite( FileHandle, FrameHeight, Sizeof(FrameHeight)) ;
       FileWrite( FileHandle, iScanZoom, Sizeof(iScanZoom)) ;
       FileWrite( FileHandle, ScanArea, Sizeof(ScanArea)) ;
-      FileWrite( FileHandle, ZStep, Sizeof(ZStep)) ;
+      FileWrite( FileHandle, ZStepSize, Sizeof(ZStepSize)) ;
       DataPointer := FileSeek( FileHandle, 0, 1 ) ;
 
       for ch := 0 to NumPMTChannels-1 do
@@ -3091,13 +3121,13 @@ begin
       FileHandle := FileOpen( FileName, fmOpenRead ) ;
 
       FilePointer := FileSeek( FileHandle, 0, 0 ) ;
-      FileRead( FileHandle, NumZSections, Sizeof(NumZSections)) ;
+      FileRead( FileHandle, NumZSectionsAvailable, Sizeof(NumZSectionsAvailable)) ;
       FileRead( FileHandle, NumPMTChannels, SizeOf(NumPMTChannels)) ;
       FileRead( FileHandle, FrameWidth, Sizeof(FrameWidth)) ;
       FileRead( FileHandle, FrameHeight, Sizeof(FrameHeight)) ;
       FileRead( FileHandle, iScanZoom, Sizeof(iScanZoom)) ;
       FileRead( FileHandle, ScanArea, Sizeof(ScanArea)) ;
-      FileRead( FileHandle, ZStep, Sizeof(ZStep)) ;
+      FileRead( FileHandle, ZStepSize, Sizeof(ZStepSize)) ;
       DataPointer := FileSeek( FileHandle, 0, 1 ) ;
 
       NumPixels := FrameWidth*FrameHeight ;
@@ -3190,7 +3220,7 @@ begin
 
     // Z stack
     iNode := ProtNode.AddChild( 'ZSTACK' ) ;
-    AddElementInt( iNode, 'NUMZSECTIONS', Round(edNUMZSections.Value) ) ;
+    AddElementInt( iNode, 'NUMZSECTIONS', Round(edNumZSteps.Value) ) ;
     AddElementDouble( iNode, 'NUMPIXELSPERZSTEP', edNumPixelsPerZStep.Value ) ;
 
     // Laser control
@@ -3335,7 +3365,7 @@ begin
     NodeIndex := 0 ;
     While FindXMLNode(ProtNode,'ZSTACK',iNode,NodeIndex) do
        begin
-       edNUMZSections.Value := GetElementInt( iNode, 'NUMZSECTIONS', Round(edNUMZSections.Value) ) ;
+       edNumZSteps.Value := GetElementInt( iNode, 'NUMZSECTIONS', Round(edNumZSteps.Value) ) ;
        edNumPixelsPerZStep.Value := GetElementDouble( iNode, 'NUMPIXELSPERZSTEP', edNumPixelsPerZStep.Value ) ;
        Inc(NodeIndex) ;
        end ;

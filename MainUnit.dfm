@@ -1,8 +1,8 @@
 object MainFrm: TMainFrm
   Left = 794
   Top = 357
-  Caption = 'MesoScan V1.5.3 64 bit 19/01/15'
-  ClientHeight = 850
+  Caption = 'MesoScan V1.6.9 64 bit 20/1/20'
+  ClientHeight = 906
   ClientWidth = 790
   Color = clBtnFace
   DoubleBuffered = True
@@ -195,8 +195,8 @@ object MainFrm: TMainFrm
     end
     object ZSectionPanel: TPanel
       Left = 159
-      Top = 243
-      Width = 154
+      Top = 233
+      Width = 234
       Height = 22
       BevelOuter = bvNone
       TabOrder = 0
@@ -291,6 +291,10 @@ object MainFrm: TMainFrm
       TabOrder = 3
       object TabImage0: TTabSheet
         Caption = 'PMT0'
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Image0: TImage
           Left = 2
           Top = 1
@@ -325,6 +329,10 @@ object MainFrm: TMainFrm
       object TabImage2: TTabSheet
         Caption = 'TabImage2'
         ImageIndex = 2
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Image2: TImage
           Left = 0
           Top = 0
@@ -342,6 +350,10 @@ object MainFrm: TMainFrm
       object TabImage3: TTabSheet
         Caption = 'TabImage3'
         ImageIndex = 3
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Image3: TImage
           Left = 0
           Top = 0
@@ -360,18 +372,18 @@ object MainFrm: TMainFrm
     Left = 8
     Top = 128
     Width = 217
-    Height = 181
+    Height = 209
     Caption = ' Image '
     TabOrder = 2
     object Label4: TLabel
-      Left = 60
+      Left = 50
       Top = 46
-      Width = 103
+      Width = 113
       Height = 13
       Alignment = taRightJustify
-      Caption = 'No. averages / image'
+      Caption = 'No. images per average'
     end
-    object edNumAverages: TValidatedEdit
+    object edNumRepeats: TValidatedEdit
       Left = 169
       Top = 47
       Width = 33
@@ -387,7 +399,7 @@ object MainFrm: TMainFrm
     end
     object ZStackGrp: TGroupBox
       Left = 12
-      Top = 74
+      Top = 96
       Width = 190
       Height = 104
       TabOrder = 1
@@ -415,12 +427,12 @@ object MainFrm: TMainFrm
         Alignment = taRightJustify
         Caption = 'Section spacing (um)'
       end
-      object edNumZSections: TValidatedEdit
+      object edNumZsteps: TValidatedEdit
         Left = 121
         Top = 16
         Width = 57
         Height = 21
-        Hint = 'No. of sections in Z stage'
+        Hint = 'No. of sections to be acquired'
         ShowHint = True
         Text = ' 1 '
         Value = 1.000000000000000000
@@ -434,8 +446,9 @@ object MainFrm: TMainFrm
         Top = 43
         Width = 57
         Height = 21
-        Hint = 'Z increment between sections'
+        Hint = 'Z increment between sections (pixels)'
         OnKeyPress = edNumPixelsPerZStepKeyPress
+        ShowHint = True
         Text = ' 1.000 '
         Value = 1.000000000000000000
         Scale = 1.000000000000000000
@@ -448,8 +461,9 @@ object MainFrm: TMainFrm
         Top = 70
         Width = 57
         Height = 21
-        Hint = 'Z increment between sections'
+        Hint = 'Z increment between sections (microns)'
         OnKeyPress = edMicronsPerZStepKeyPress
+        ShowHint = True
         Text = ' 0.000 um'
         Scale = 1.000000000000000000
         Units = 'um'
@@ -472,7 +486,7 @@ object MainFrm: TMainFrm
     end
     object LineScanGrp: TGroupBox
       Left = 12
-      Top = 74
+      Top = 96
       Width = 190
       Height = 104
       TabOrder = 3
@@ -499,10 +513,19 @@ object MainFrm: TMainFrm
         HiLimit = 30000.000000000000000000
       end
     end
+    object ckKeepRepeats: TCheckBox
+      Left = 33
+      Top = 68
+      Width = 169
+      Height = 25
+      Alignment = taLeftJustify
+      Caption = 'Keep images for later averaging'
+      TabOrder = 4
+    end
   end
   object ZStageGrp: TGroupBox
     Left = 8
-    Top = 304
+    Top = 344
     Width = 217
     Height = 75
     Caption = 'Z Position '
@@ -557,7 +580,7 @@ object MainFrm: TMainFrm
   end
   object PMTGrp: TGroupBox
     Left = 8
-    Top = 385
+    Top = 420
     Width = 217
     Height = 149
     Caption = ' PMT Channels  '
@@ -861,7 +884,7 @@ object MainFrm: TMainFrm
   end
   object LaserGrp: TGroupBox
     Left = 8
-    Top = 538
+    Top = 578
     Width = 217
     Height = 56
     Caption = ' Laser '
@@ -925,7 +948,7 @@ object MainFrm: TMainFrm
   end
   object DisplayGrp: TGroupBox
     Left = 8
-    Top = 600
+    Top = 640
     Width = 217
     Height = 165
     Caption = ' Display '
@@ -1043,6 +1066,10 @@ object MainFrm: TMainFrm
       object SlidersTab: TTabSheet
         Caption = 'Sliders'
         ImageIndex = 1
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Label9: TLabel
           Left = 14
           Top = 0
@@ -1152,7 +1179,7 @@ object MainFrm: TMainFrm
   end
   object StatusGrp: TGroupBox
     Left = 8
-    Top = 770
+    Top = 810
     Width = 217
     Height = 81
     TabOrder = 7
