@@ -291,6 +291,10 @@ object MainFrm: TMainFrm
       TabOrder = 3
       object TabImage0: TTabSheet
         Caption = 'PMT0'
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Image0: TImage
           Left = 2
           Top = 1
@@ -325,6 +329,10 @@ object MainFrm: TMainFrm
       object TabImage2: TTabSheet
         Caption = 'TabImage2'
         ImageIndex = 2
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Image2: TImage
           Left = 0
           Top = 0
@@ -342,6 +350,10 @@ object MainFrm: TMainFrm
       object TabImage3: TTabSheet
         Caption = 'TabImage3'
         ImageIndex = 3
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Image3: TImage
           Left = 0
           Top = 0
@@ -1055,6 +1067,10 @@ object MainFrm: TMainFrm
       object SlidersTab: TTabSheet
         Caption = 'Sliders'
         ImageIndex = 1
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
         object Label9: TLabel
           Left = 14
           Top = 0

@@ -44,6 +44,7 @@ unit MainUnit;
 //                 Image cleared to black at start of new scan
 // V1.6.9 21.01.20 Averaging image repeats can now be saved
 //        22.01.20 Tested in MesoScope 2
+//                 Now adjusts A/D input mode when device only support pseudo diff.
 
 interface
 

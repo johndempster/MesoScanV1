@@ -36,6 +36,8 @@ unit LabIOUnit;
 // 21.10.19 JD .... ADCToMemoryExtScan() A/D samplings now set to maximum supported by device
 //                  for selected number of channels
 // 20.01.19 JD .... Task handles now defined as NativeInt to make compatible with 64 bit version 20.X of NIDAQmx
+// 22.01.10 JD .... Pseudo_diff analog input config now selected if device only supports that
+//                  Input voltage ranges greater than +/-10V excluded from list of available input voltage ranges
 
 interface
 
@@ -1127,7 +1129,8 @@ begin
     for i := 0 to High(VRanges) do VRanges[i] := 0.0 ;
     CheckError( DAQmxGetDevAIVoltageRngs( PANSIChar(DeviceName[DeviceNum]), VRanges, High(VRanges) ) );
     NumChannels := 0 ;
-    for i := High(VRanges) downto 0 do if VRanges[i] > 0.0 then
+    for i := High(VRanges) downto 0 do
+        if (VRanges[i] > 0.0) and (VRanges[i] <= 10.0) then
         begin
         ADCVoltageRanges[DeviceNum,NumChannels] := VRanges[i] ;
         Inc(NumChannels) ;
@@ -1138,14 +1141,27 @@ begin
     CheckError( DAQmxCreateTask( '', ADCTask[DeviceNum] ) ) ;
 
     ChannelName := format('%s/ai0',[DeviceName[DeviceNum]]) ;
-    CheckError( DAQmxCreateAIVoltageChan( ADCTask[DeviceNum],
-                                      PANSIChar(ChannelName),
-                                      nil ,
-                                      Integer(DAQmx_Val_Diff),
-                                      -10.0,
-                                      10.0,
-                                      Integer(DAQmx_Val_Volts),
-                                      nil));
+    Err := DAQmxCreateAIVoltageChan( ADCTask[DeviceNum],
+                                     PANSIChar(ChannelName),
+                                     nil ,
+                                     Integer(DAQmx_Val_PseudoDiff),
+                                     -10.0,
+                                     10.0,
+                                     Integer(DAQmx_Val_Volts),
+                                     nil);
+     if Err <> 0 then
+        begin
+        // Check for 61XX series devices which only
+        // support pseudo-differential inputs 01/07/10
+        CheckError(DAQmxCreateAIVoltageChan( ADCTask[DeviceNum],
+                                     PANSIChar(ChannelName),
+                                     nil ,
+                                     Integer(DAQmx_Val_PseudoDiff),
+                                     -10.0,
+                                     10.0,
+                                     Integer(DAQmx_Val_Volts),
+                                     nil));
+        end;
 
     // Get A/D converter resolution
     CheckError( DAQmxGetAIResolution( ADCTask[DeviceNum],
