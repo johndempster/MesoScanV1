@@ -43,6 +43,7 @@ unit MainUnit;
 //                 PMT gain and voltage controls no longer disabled when scanning
 //                 Image cleared to black at start of new scan
 // V1.6.9 21.01.20 Averaging image repeats can now be saved
+//        22.01.20 Tested in MesoScope 2
 
 interface
 
@@ -600,7 +601,7 @@ begin
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 21/01/20';
+    Caption := Caption + ' 22/01/20';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
