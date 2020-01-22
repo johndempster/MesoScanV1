@@ -1156,7 +1156,7 @@ begin
         CheckError(DAQmxCreateAIVoltageChan( ADCTask[DeviceNum],
                                      PANSIChar(ChannelName),
                                      nil ,
-                                     Integer(DAQmx_Val_PseudoDiff),
+                                     Integer(DAQmx_Val_Diff),
                                      -10.0,
                                      10.0,
                                      Integer(DAQmx_Val_Volts),
