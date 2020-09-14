@@ -20,6 +20,8 @@ unit ZStageUnit;
 // 27.10.17 Stage controller module from imported from MesoCam to add correct ProScanEnableZStageTTLAction
 //          Now interrupts Z movement commands before move to zero
 // 01.11.17 OptiScan II now operated in standard (COMP 0) mode
+// 14.09.20 Prior stage protection interrupt now triggered by a TTL high-low transition
+//          produced by Mesoscope V3 stage protection circuit when microswitches closed
 
 interface
 
@@ -683,7 +685,10 @@ procedure TZStage.ProScanEnableZStageTTLAction ;
 begin
      SendCommand('TTLDEL,1') ;
      WaitforResponse('0') ;
-     SendCommand('TTLTP,1,1') ;       // Enable trigger on input #1 going high
+
+     SendCommand('TTLTP,1,0') ;       // Enable trigger on input #1 going low
+                                      // 14.09.20 Changed from high to low to work with
+                                      // new microswitch circuit in Mesoscope V3
      WaitforResponse('0') ;
      SendCommand('TTLACT,1,70,0,0,0') ; // Stop all movement
      WaitforResponse('0') ;

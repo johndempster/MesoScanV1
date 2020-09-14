@@ -45,6 +45,9 @@ unit MainUnit;
 // V1.6.9 21.01.20 Averaging image repeats can now be saved
 //        22.01.20 Tested in MesoScope 2
 //                 Now adjusts A/D input mode when device only support pseudo diff.
+// V1.7.0 14.09.20 Prior stage protection interrupt now triggered by a TTL high-low transition
+//                 produced by Mesoscope V3 stage protection circuit when microswitches closed
+
 
 interface
 
@@ -596,13 +599,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.6.9 ';
+     Caption := 'MesoScan V1.7.0 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 22/01/20';
+    Caption := Caption + ' 14/09/20';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -3207,10 +3210,9 @@ begin
     AddElementBool( ProtNode, 'REPEATSCANS', ckRepeat.Checked ) ;
     AddElementBool( ProtNode, 'INVERTPMTSIGNAL', InvertPMTSignal ) ;
 
-    AddElementInt( ProtNode, 'NUMAVERAGES', NumAverages ) ;
     AddElementDouble( ProtNode, 'MAXSCANRATE', MaxScanRate ) ;
     AddElementDouble( ProtNode, 'MINPIXELDWELLTIME', MinPixelDwellTime ) ;
-    AddElementInt( ProtNode, 'NUMAVERAGES', NumAverages ) ;
+    AddElementInt( ProtNode, 'NUMREPEATS', Round(edNumRepeats.Value) ) ;
     AddElementInt( ProtNode, 'BLACKLEVEL', BlackLevel ) ;
 
     AddElementDouble( ProtNode, 'XVOLTSPERMICRON', XVoltsPerMicron ) ;
@@ -3350,10 +3352,9 @@ begin
 
     InvertPMTSignal := GetElementBool( ProtNode, 'INVERTPMTSIGNAL', InvertPMTSignal ) ;
 
-    NumAverages := GetElementInt( ProtNode, 'NUMAVERAGES', NumAverages ) ;
     MaxScanRate := GetElementDouble( ProtNode, 'MAXSCANRATE', MaxScanRate ) ;
     MinPixelDwellTime := GetElementDouble( ProtNode, 'MINPIXELDWELLTIME', MinPixelDwellTime ) ;
-    NumAverages := GetElementInt( ProtNode, 'NUMAVERAGES', NumAverages ) ;
+    edNumRepeats.Value := GetElementInt( ProtNode, 'NUMREPEATS', Round(edNumRepeats.Value) ) ;
     BlackLevel := GetElementInt( ProtNode, 'BLACKLEVEL', BlackLevel ) ;
 
     XVoltsPerMicron := GetElementDouble( ProtNode, 'XVOLTSPERMICRON', XVoltsPerMicron ) ;
