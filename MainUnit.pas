@@ -47,6 +47,8 @@ unit MainUnit;
 //                 Now adjusts A/D input mode when device only support pseudo diff.
 // V1.7.0 14.09.20 Prior stage protection interrupt now triggered by a TTL high-low transition
 //                 produced by Mesoscope V3 stage protection circuit when microswitches closed
+// V1.7.1 19.04.21 Prior stage protection interrupt now triggered by a TTL low-high transition
+//                 to be compatible with Strathclyde prototype mesolens system
 
 
 interface
@@ -599,13 +601,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.0 ';
+     Caption := 'MesoScan V1.7.1 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 14/09/20';
+    Caption := Caption + ' 19/04/21';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;

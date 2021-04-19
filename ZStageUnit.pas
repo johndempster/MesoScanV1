@@ -686,7 +686,9 @@ begin
      SendCommand('TTLDEL,1') ;
      WaitforResponse('0') ;
 
-     SendCommand('TTLTP,1,0') ;       // Enable trigger on input #1 going low
+     SendCommand('TTLTP,1,1') ;       // Enable trigger on input #1 going high
+                                      // 19.04.21 Restored to going high for
+                                      // Strathclyde prototype system
                                       // 14.09.20 Changed from high to low to work with
                                       // new microswitch circuit in Mesoscope V3
      WaitforResponse('0') ;
