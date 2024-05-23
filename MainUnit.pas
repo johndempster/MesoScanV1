@@ -1,6 +1,6 @@
 unit MainUnit;
 // =======================================================================
-// Mesoscan: Mesolens confocal LSM software                                                        e
+// Mesoscan: Mesolens confocal LSM software                                                        e                                                                           ast
 // =======================================================================
 // (c) John Dempster, University of Strathclyde 2011-12
 // V1.0 1-5-12
@@ -49,7 +49,10 @@ unit MainUnit;
 //                 produced by Mesoscope V3 stage protection circuit when microswitches closed
 // V1.7.1 19.04.21 Prior stage protection interrupt now triggered by a TTL low-high transition
 //                 to be compatible with Strathclyde prototype mesolens system
-
+// V1.7.3 22.05.24 Image intensity histogram added
+//                 Form background now black
+//                 Prior stage protection interrupt TTL transition now defined in settings
+//                 MUTEX Dempster.MesoScan now prevents multiple instances
 
 interface
 
@@ -57,7 +60,8 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ComCtrls, StdCtrls, ValidatedEdit, LabIOUnit, RangeEdit, math,
-  ExtCtrls, ImageFile, xmldoc, xmlintf, ActiveX, Vcl.Menus, system.types, strutils, UITypes, shellapi, shlobj ;
+  ExtCtrls, ImageFile, xmldoc, xmlintf, ActiveX, Vcl.Menus, system.types, strutils, UITypes, shellapi, shlobj,
+  XYPlotDisplay ;
 
 const
     VMax = 10.0 ;
@@ -81,6 +85,7 @@ const
     XTMode = 2 ;
     XZMode = 3 ;
     MaxPMT = 3 ;
+    HistogramNumBins = 200 ;
 
 type
 
@@ -146,22 +151,6 @@ type
     DisplayGrp: TGroupBox;
     Splitter1: TSplitter;
     cbPalette: TComboBox;
-    ContrastPage: TPageControl;
-    RangeTab: TTabSheet;
-    bFullScale: TButton;
-    bMaxContrast: TButton;
-    edDisplayIntensityRange: TRangeEdit;
-    ckContrast6SDOnly: TCheckBox;
-    ckAutoOptimise: TCheckBox;
-    SlidersTab: TTabSheet;
-    Label9: TLabel;
-    Label10: TLabel;
-    Label11: TLabel;
-    Label13: TLabel;
-    Label12: TLabel;
-    Label14: TLabel;
-    sbContrast: TScrollBar;
-    sbBrightness: TScrollBar;
     StatusGrp: TGroupBox;
     meStatus: TMemo;
     bScanFull: TButton;
@@ -194,15 +183,27 @@ type
     udPMTVolts3: TUpDown;
     ImagePage: TPageControl;
     TabImage0: TTabSheet;
-    Image0: TImage;
     TabImage1: TTabSheet;
     TabImage2: TTabSheet;
     TabImage3: TTabSheet;
-    Image1: TImage;
-    Image2: TImage;
-    Image3: TImage;
     SavetoImageJ1: TMenuItem;
     ckKeepRepeats: TCheckBox;
+    plHistogram: TXYPlotDisplay;
+    Image0: TImage;
+    gpYAxis: TGroupBox;
+    rbYAxisLinear: TRadioButton;
+    rbYAxisLog: TRadioButton;
+    gpHistogramType: TGroupBox;
+    rbLineHistogram: TRadioButton;
+    rbImageHistogram: TRadioButton;
+    gpContrast: TGroupBox;
+    bFullScale: TButton;
+    edDisplayIntensityRange: TRangeEdit;
+    bMaxContrast: TButton;
+    ckAutoOptimise: TCheckBox;
+    ckContrast6SDOnly: TCheckBox;
+    bRange: TButton;
+    bCursors: TButton;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
@@ -242,7 +243,6 @@ type
     procedure edMicronsPerZStepKeyPress(Sender: TObject; var Key: Char);
     procedure edGotoZPositionKeyPress(Sender: TObject; var Key: Char);
     procedure Image0DblClick(Sender: TObject);
-    procedure sbContrastChange(Sender: TObject);
     procedure bScanFullClick(Sender: TObject);
     procedure mnSaveImageClick(Sender: TObject);
     procedure edLaserIntensityKeyPress(Sender: TObject; var Key: Char);
@@ -258,10 +258,14 @@ type
       NewValue: Integer; Direction: TUpDownDirection);
     procedure SavetoImageJ1Click(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure bRangeClick(Sender: TObject);
+    procedure rbImageHistogramClick(Sender: TObject);
+    procedure bCursorsClick(Sender: TObject);
+    procedure ImagePageChange(Sender: TObject);
   private
     { Private declarations }
         BitMap : Array[0..MaxPMT] of TBitMap ;  // Image internal bitmaps
-        Image : Array[0..MaxPMT] of TImage ;  // Image internal bitmaps
+//        Image : Array[0..MaxPMT] of TImage ;  // Image internal bitmaps
         procedure DisplayROI( BitMap : TBitmap ) ;
         procedure DisplaySquare(
                   BitMap : TBitMap ;
@@ -394,6 +398,7 @@ type
     Magnification : Integer ;
 
         // Display look-up tables
+    YMax : Single ;                        // Histogram max bin value
     GreyLo : Array[0..MaxPMT] of Integer ; // Lower limit of display grey scale
     GreyHi : Array[0..MaxPMT] of Integer ; // Upper limit of display grey scale
     LUT : Array[0..MaxPMT,0..LUTSize-1] of Word ;    // Display look-up tables
@@ -408,6 +413,13 @@ type
     SnapNum : Integer ;
     ScanRequested : Integer ;
     ScanningInProgress : Boolean ;
+
+    // Display intensity histograms
+     Histogram : Array[0..MaxPMT,0..HistogramNumBins*2-1] of Single ;
+     LastLineAddedToHistogram : Integer ;
+     HistogramCursorLo : Integer ;
+     HistogramCursorHi : Integer ;
+     BinWidth : Integer ;                      // Histogram bin width (grey level units)
 
     INIFileName : String ;
     ProgDirectory : String ;
@@ -454,6 +466,10 @@ type
           var PCDone : Double ;
           var n : Integer ;
           var NumPixels : Integer ) ;
+
+   procedure PlotHistogram ;
+   procedure CreateHistogramPlot ;
+   procedure ClearHistogram ;
 
 
     procedure SaveRawImage(
@@ -580,14 +596,14 @@ begin
 
      // Create array of image controls
      Image0.Tag := 0 ;
-     Image1.Tag := 1 ;
+{     Image1.Tag := 1 ;
      Image2.Tag := 2 ;
-     Image3.Tag := 3 ;
+     Image3.Tag := 3 ;}
 
-     Image[0] := Image0 ;
-     Image[1] := Image1 ;
-     Image[2] := Image2 ;
-     Image[3] := Image3 ;
+{     Image[0] := Image0 ;
+     Image[1] := Image0 ;
+     Image[2] := Image0 ;
+     Image[3] := Image0 ;}
 
      end;
 
@@ -601,13 +617,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.1 ';
+     Caption := 'MesoScan V1.7.3 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 19/04/21';
+    Caption := Caption + ' 22/05/24';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -690,10 +706,6 @@ begin
 
      edDisplayIntensityRange.LoLimit := 0 ;
      edDisplayIntensityRange.HiLimit := ADCMaxValue ;
-     sbBrightness.Min := 0 ;
-     sbBrightness.Max := ADCMaxValue ;
-     sbContrast.Min := 0 ;
-     sbContrast.Max := ADCMaxValue ;
 
      bFullScale.Click ;
 
@@ -808,16 +820,19 @@ begin
      UpdateDisplay := True ;
      bStopScan.Enabled := False ;
      image0.ControlStyle := image0.ControlStyle + [csOpaque] ;
-     image1.ControlStyle := image1.ControlStyle + [csOpaque] ;
-     image2.ControlStyle := image2.ControlStyle + [csOpaque] ;
-     image3.ControlStyle := image3.ControlStyle + [csOpaque] ;
      imagegrp.ControlStyle := imagegrp.ControlStyle + [csOpaque] ;
      lbreadout.ControlStyle := lbreadout.ControlStyle + [csOpaque] ;
 
      Left := 10 ;
      Top := 10 ;
-     Width := Screen.Width - 10 - Left ;
+
      Height := Screen.Height - 50 - Top ;
+     Width := Height + 50 ;
+
+     // Set up image intensity histogram plot
+     CreateHistogramPlot ;
+
+  //   LoadRawImage( RawImagesFileName, 0 ) ;
 
      end;
 
@@ -864,8 +879,6 @@ procedure TMainFrm.Image0MouseDown(Sender: TObject; Button: TMouseButton;
 // -------------------
 // Mouse down on image
 // -------------------
-var
-    ch : Integer ;
 begin
 
      // Save mouse position when button pressed
@@ -881,10 +894,8 @@ begin
      TopLeftDown.X := XLeft ;
      TopLeftDown.Y := YTop ;
 
-     for ch := 0 to NumPMTCHannels-1 do begin
-        MouseUpCursor := Image[ch].Cursor ;
-       if (Image[ch].Cursor = crCross) and (not ROIMode) then Screen.Cursor := crHandPoint ;
-       end;
+     MouseUpCursor := Image0.Cursor ;
+     if (Image0.Cursor = crCross) and (not ROIMode) then Screen.Cursor := crHandPoint ;
 
      end;
 
@@ -937,21 +948,21 @@ begin
         if (Abs(Y - SelectedRectBM.Bottom) < EdgeSize) and
            (X >= SelectedRectBM.Left) and
            (X <= SelectedRectBM.Right) then SelectedEdge.Bottom := 1 ;
-        if (SelectedEdge.Left = 1) and (SelectedEdge.Top = 1) then Image1.Cursor := crSizeNWSE
-        else if (SelectedEdge.Left = 1) and (SelectedEdge.Bottom = 1) then Image1.Cursor := crSizeNESW
-        else if (SelectedEdge.Right = 1) and (SelectedEdge.Top = 1) then Image1.Cursor := crSizeNESW
-        else if (SelectedEdge.Right = 1) and (SelectedEdge.Bottom = 1) then Image1.Cursor := crSizeNWSE
-        else if SelectedEdge.Left = 1 then Image1.Cursor := crSizeWE
-        else if SelectedEdge.Right = 1 then Image1.Cursor := crSizeWE
-        else if SelectedEdge.Top = 1 then Image1.Cursor := crSizeNS
-        else if SelectedEdge.Bottom = 1 then Image1.Cursor := crSizeNS
-        else Image1.Cursor := crCross ;
+        if (SelectedEdge.Left = 1) and (SelectedEdge.Top = 1) then Image0.Cursor := crSizeNWSE
+        else if (SelectedEdge.Left = 1) and (SelectedEdge.Bottom = 1) then Image0.Cursor := crSizeNESW
+        else if (SelectedEdge.Right = 1) and (SelectedEdge.Top = 1) then Image0.Cursor := crSizeNESW
+        else if (SelectedEdge.Right = 1) and (SelectedEdge.Bottom = 1) then Image0.Cursor := crSizeNWSE
+        else if SelectedEdge.Left = 1 then Image0.Cursor := crSizeWE
+        else if SelectedEdge.Right = 1 then Image0.Cursor := crSizeWE
+        else if SelectedEdge.Top = 1 then Image0.Cursor := crSizeNS
+        else if SelectedEdge.Bottom = 1 then Image0.Cursor := crSizeNS
+        else Image0.Cursor := crCross ;
         CursorPos.X := X ;
         CursorPos.Y := Y ;
         end
      else
         begin
-        if Image1.Cursor = crCRoss then Image1.Cursor := crHandPoint ;
+        if Image0.Cursor = crCRoss then Image0.Cursor := crHandPoint ;
         XShift := X - CursorPos.X ;
         CursorPos.X := X ;
         YShift := Y - CursorPos.Y ;
@@ -1007,7 +1018,7 @@ begin
             end;
          end ;
 
-     for ch := 0 to NumPMTChannels-1 do Image[ch].Cursor := Image1.Cursor ;
+     for ch := 0 to NumPMTChannels-1 do Image0.Cursor := Image0.Cursor ;
 
      UpdateDisplay := True ;
      end ;
@@ -1039,13 +1050,25 @@ var
 begin
      MouseDown := False ;
 
-     for ch := 0 to NumPMTChannels-1 do Image[ch].Cursor := MouseUpCursor ;
+     for ch := 0 to NumPMTChannels-1 do Image0.Cursor := MouseUpCursor ;
      Screen.Cursor :=crDefault ;
      ROIMode := False ;                   // Turn ROI mode off
      FixRectangle(SelectedRectBM);
      FixRectangle(SelectedRect);
 
      end;
+
+
+procedure TMainFrm.ImagePageChange(Sender: TObject);
+// -----------------------
+// PMT display tab changed
+// -----------------------
+begin
+     // Set intensity range and histogram cursors
+     SetDisplayIntensityRange( MainFrm.GreyLo[ImagePage.activepageindex],
+                               MainFrm.GreyHi[ImagePage.activepageindex] ) ;
+
+end;
 
 
 procedure TMainFrm.InitialiseImage ;
@@ -1060,12 +1083,9 @@ begin
      // Set size and location of image display panels
      SetImagePanels ;
 
-     // Indicate selected frame type selected for contrast update
-     DisplayGrp.Caption := ' Contrast ' ;
-
-     // Set intensity range and sliders
-     SetDisplayIntensityRange( MainFrm.GreyLo[ImagePage.ActivePageIndex],
-                               MainFrm.GreyHi[ImagePage.ActivePageIndex] ) ;
+     // Set intensity range and histogram cursors
+//     SetDisplayIntensityRange( MainFrm.GreyLo[ImagePage.activepageindex],
+//                               MainFrm.GreyHi[ImagePage.activepageindex] ) ;
 
      for ch := 0 to NumPMTChannels-1 do
         begin
@@ -1097,8 +1117,8 @@ var
     PScanLine : PByteArray ;    // Bitmap line buffer pointer
 begin
 
-     ImageGrp.ClientWidth :=  Max( ClientWidth - ImageGrp.Left - 5, 2) ;
-     ImageGrp.ClientHeight :=  Max( ClientHeight - ImageGrp.Top - 5, 2) ;
+     ImageGrp.Width :=  Max( ClientWidth - ImageGrp.Left - 5, 2) ;
+     ImageGrp.Height :=  Max( ClientHeight - ImageGrp.Top - 5, 2) ;
      ZoomPanel.Top := ImageGrp.ClientHeight - ZoomPanel.Height - 1 ;
      ZoomPanel.Left := 5 ;
      ZSectionPanel.Top := ZoomPanel.Top ;
@@ -1106,15 +1126,18 @@ begin
      lbReadout.Left :=  ZoomPanel.Left + ZoomPanel.Width + 5 ;
 
      ImagePage.Width := ImageGrp.ClientWidth - ImagePage.Left - 5 ;
-     ImagePage.Height := ZSectionPanel.Top - ImagePage.Top - 2 ;
+
+//     ImagePage.Height := ZSectionPanel.Top - ImagePage.Top - 2 ;
+     Image0.Top := ImagePage.Top + ImagePage.Height ;
+     Image0.Height := ZSectionPanel.Top - Image0.Top - 2 ;
+
      ZSectionPanel.Left := ImagePage.Width + ImagePage.Left - ZSectionPanel.Width ;
 
-     DisplayMaxWidth := TabImage0.ClientWidth {- TabImage0.Left} - 1 ;
-     DisplayMaxHeight := TabImage0.ClientHeight {- TabImage0.Top} - 1 ;
+     DisplayMaxWidth := ImageGrp.ClientWidth - Image0.Left ;
+     DisplayMaxHeight := ZSectionPanel.Top - Image0.Top ;
 
      for ch := 0 to NumPMTChannels-1 do
          begin
-
          if BitMap[ch] <> Nil then BitMap[ch].Free ;
          BitMap[ch] := TBitMap.Create ;
          SetPalette( BitMap[ch], PaletteType ) ;
@@ -1137,7 +1160,7 @@ begin
          XScaleToBM := (BitMap[ch].Width*Magnification) / FrameWidth ;
          YScaleToBM := (BitMap[ch].Width*Magnification*FrameHeightScale) / FrameWidth ;
 
-         SetImageSize( Image[ch] ) ;
+         SetImageSize( Image0 ) ;
 
          //Clear image to zeroes
          for Ybm := 0 to BitMap[ch].Height-1 do
@@ -1159,6 +1182,7 @@ procedure TMainFrm.SetImageSize(
 begin
 
      Image.Width := BitMap[0].Width ;
+     ImagePage.Width := Image.Width ;
      Image.Height := BitMap[0].Height ;
 
      Image.Canvas.Pen.Color := clWhite ;
@@ -1182,11 +1206,17 @@ procedure TMainFrm.SetDisplayIntensityRange(
 // --------------------------------------
 begin
 
-     edDisplayIntensityRange.LoValue := LoValue  ;
-     edDisplayIntensityRange.HiValue := HiValue  ;
+     // Indicate PMT channel selected for contrast update
+     gpContrast.Caption := format(' Contrast: PMT%d ',[ImagePage.activepageindex]) ;
 
-     sbBrightness.Position := sbBrightness.Max - (LoValue + HiValue) div 2  ;
-     sbContrast.Position := sbContrast.Max - (HiValue - LoValue) ;
+     if ((edDisplayIntensityRange.LoValue <> LoValue) or
+         (edDisplayIntensityRange.HiValue <> HiValue)) then
+         begin
+         edDisplayIntensityRange.LoValue := LoValue  ;
+         edDisplayIntensityRange.HiValue := HiValue  ;
+         plHistogram.VerticalCursors[HistogramCursorLo] := LoValue ;
+         plHistogram.VerticalCursors[HistogramCursorHi] := HiValue ;
+         end;
 
      end ;
 
@@ -1244,7 +1274,6 @@ begin
 
     meStatus.Clear ;
     meStatus.Lines[0] := 'Wait: Creating XY scan waveform' ;
-
 
     // No. pixels in scan buffer
 
@@ -1628,8 +1657,8 @@ begin
     for ch  := 0 to NumPMTChannels-1 do if pImageBuf[ch] <> Nil then
        begin
 
-       Image[ch].Width := BitMap[ch].Width ;
-       Image[ch].Height := BitMap[ch].Height ;
+       Image0.Width := BitMap[ch].Width ;
+       Image0.Height := BitMap[ch].Height ;
 
        DisplayMaxWidth := TabImage0.ClientWidth - TabImage0.Left - 1 ;
        DisplayMaxHeight := TabImage0.ClientHeight - TabImage0.Top - 1 ;
@@ -1682,14 +1711,17 @@ begin
        if (cbImageMode.ItemIndex <> XZMode) and
           (cbImageMode.ItemIndex <> XTMode) then DisplayROI(BitMap[ch]) ;
 
-       Image[ch].Picture.Assign(BitMap[ch]) ;
-       Image[ch].Width := BitMap[ch].Width ;
-       Image[ch].Height := BitMap[ch].Height ;
 
        FreeMem(XMap) ;
        FreeMem(YMap) ;
 
        end ;
+
+    // Update display image with selected PMT
+    Image0.Picture.Assign(BitMap[ImagePage.activepageindex]) ;
+    Image0.Width := BitMap[ImagePage.activepageindex].Width ;
+    Image0.Height := BitMap[ImagePage.activepageindex].Height ;
+
 
     lbZoom.Caption := format('Zoom (X%d)',[Magnification]) ;
 
@@ -2052,6 +2084,7 @@ var
     PMTInUse : Array[0..MaxPMT] of Boolean ;
     PMTGain : Array[0..MaxPMT] of Integer ;
     AOList : Array[0..1] of Integer ;
+
 begin
 
     // Stop A/D & D/A
@@ -2123,6 +2156,11 @@ begin
 
     InitialiseImage ;
 
+
+    // Clear image intensity histogram
+    ClearHistogram ;
+
+
     end;
 
 procedure TMainFrm.SetAllPMTVoltages ;
@@ -2165,22 +2203,50 @@ begin
     end;
 
 
+procedure TMainFrm.bCursorsClick(Sender: TObject);
+// --------------------------------------------------
+// Set display intensity range from histogram cursors
+// --------------------------------------------------
+var
+    Temp : Integer ;
+begin
+      GreyLo[ImagePage.ActivePageIndex] := Round(plHistogram.VerticalCursors[HistogramCursorLo]) ;
+      GreyHi[ImagePage.ActivePageIndex] := Round(plHistogram.VerticalCursors[HistogramCursorHi]) ;
+
+      // Swap if lo cursor > hi cursor
+      if GreyLo[ImagePage.ActivePageIndex] > GreyHi[ImagePage.ActivePageIndex] then
+         begin
+         Temp := GreyLo[ImagePage.ActivePageIndex] ;
+         GreyLo[ImagePage.ActivePageIndex] := GreyHi[ImagePage.ActivePageIndex] ;
+         GreyHi[ImagePage.ActivePageIndex] := Temp ;
+         end;
+
+     // Ensure a non-zero LUT range
+        if GreyLo[ImagePage.ActivePageIndex] = GreyHi[ImagePage.ActivePageIndex] then
+           begin
+           GreyLo[ImagePage.ActivePageIndex] := GreyLo[ImagePage.ActivePageIndex] - 1 ;
+           GreyHi[ImagePage.ActivePageIndex] := GreyHi[ImagePage.ActivePageIndex] + 1 ;
+           end ;
+
+     UpdateLUT(ImagePage.ActivePageIndex, ADCMaxValue ) ;
+
+     SetDisplayIntensityRange( GreyLo[ImagePage.ActivePageIndex], GreyHi[ImagePage.ActivePageIndex] ) ;
+
+end;
+
 procedure TMainFrm.bFullScaleClick(Sender: TObject);
 // --------------------------------------------------------
 // Set display grey scale to full intensity range of camera
 // --------------------------------------------------------
 begin
 
-    edDisplayIntensityRange.LoValue := 0 ;
-    GreyLo[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.LoValue) ;
-    edDisplayIntensityRange.HiValue := ADCMaxValue ;
-    GreyHi[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.HiValue) ;
-
-    UpdateLUT( ImagePage.ActivePageIndex, ADCMaxValue ) ;
+    GreyLo[ImagePage.ActivePageIndex] := 0 ;
+    GreyHi[ImagePage.ActivePageIndex] := ADCMaxValue ; ;
 
     // Set intensity range and sliders
-    SetDisplayIntensityRange( GreyLo[ImagePage.ActivePageIndex],
-                              GreyHi[ImagePage.ActivePageIndex] ) ;
+    SetDisplayIntensityRange( GreyLo[ImagePage.ActivePageIndex],GreyHi[ImagePage.ActivePageIndex] ) ;
+
+    UpdateLUT( ImagePage.ActivePageIndex, ADCMaxValue ) ;
 
     UpdateDisplay := True ;
 
@@ -2194,24 +2260,10 @@ procedure TMainFrm.edDisplayIntensityRangeKeyPress(Sender: TObject;
 // ------------------------------
 begin
 
-     if key <> #13 then Exit ;
+     if key = #13 then begin
+ //       bRange.Click ;
+     end;
 
-     if edDisplayIntensityRange.LoValue = edDisplayIntensityRange.HiValue then
-        begin
-        edDisplayIntensityRange.LoValue := edDisplayIntensityRange.LoValue - 1.0 ;
-        edDisplayIntensityRange.HiValue := edDisplayIntensityRange.HiValue + 1.0 ;
-        end ;
-
-     GreyLo[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.LoValue) ;
-     GreyHi[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.HiValue) ;
-
-     UpdateLUT( ImagePage.ActivePageIndex, ADCMaxValue ) ;
-
-     // Set intensity range and sliders
-     SetDisplayIntensityRange( GreyLo[ImagePage.ActivePageIndex],
-                               GreyHi[ImagePage.ActivePageIndex] ) ;
-
-     UpdateDisplay := True ;
      end;
 
 
@@ -2231,6 +2283,7 @@ begin
        tbLaserIntensity.Position := Round(10.0*edLaserIntensity.Value) ;
        end;
     end;
+
 
 procedure TMainFrm.edMicronsPerZStepKeyPress(Sender: TObject; var Key: Char);
 // -------------------------
@@ -2295,6 +2348,30 @@ begin
 
      end;
 
+
+procedure TMainFrm.bRangeClick(Sender: TObject);
+// --------------------------------------------------
+// Set display intensity range from user entered range
+// ---------------------------------------------------
+begin
+
+    if edDisplayIntensityRange.LoValue = edDisplayIntensityRange.HiValue then
+        begin
+        edDisplayIntensityRange.LoValue := edDisplayIntensityRange.LoValue - 1.0 ;
+        edDisplayIntensityRange.HiValue := edDisplayIntensityRange.HiValue + 1.0 ;
+        end ;
+
+     GreyLo[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.LoValue) ;
+     GreyHi[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.HiValue) ;
+
+     UpdateLUT( ImagePage.ActivePageIndex, ADCMaxValue ) ;
+
+     // Set intensity range and sliders
+     SetDisplayIntensityRange( GreyLo[ImagePage.ActivePageIndex],
+                               GreyHi[ImagePage.ActivePageIndex] ) ;
+
+     UpdateDisplay := True ;
+end;
 
 procedure TMainFrm.CalculateMaxContrast ;
 // ---------------------------------------------------------
@@ -2380,9 +2457,13 @@ procedure TMainFrm.TimerTimer(Sender: TObject);
 // --------------------------
 begin
 
+    if ScanningInProgress then PMTGrp.Enabled := False
+                          else PMTGrp.Enabled := True ;
+
     if UpdateDisplay then
        begin ;
        UpdateImage ;
+       PlotHistogram ;
        UpdateDisplay := False ;
        end ;
 
@@ -2399,6 +2480,7 @@ begin
           begin
           StartScan ;
           UpdateImage ;
+          PlotHistogram ;
           end ;
        end ;
 
@@ -2595,6 +2677,7 @@ begin
              begin
              ScanRequested := 1 ;
              NumAverages := 1 ;
+             NumRepeats := 0 ;
              ClearAverage := True ;
              if cbImageMode.ItemIndex = XZMode then ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStartingPosition );
              end
@@ -2972,8 +3055,8 @@ begin
   ImageGrp.Width := Max(ClientWidth - ImageGrp.Left - 5,2) ;
   ImageGrp.Height := Max(ClientHeight - ImageGrp.Top - 5,2) ;
 
-  DisplayMaxWidth := ImageGrp.ClientWidth - Image1.Left - 5 ;
-  DisplayMaxHeight := ImageGrp.ClientHeight - Image1.Top - 5 - ZSectionPanel.Height ;
+  DisplayMaxWidth := ImageGrp.ClientWidth - Image0.Left - 5 ;
+  DisplayMaxHeight := ImageGrp.ClientHeight - Image0.Top - 5 - ZSectionPanel.Height ;
 
   SetImagePanels ;
   UpdateDisplay := True ;
@@ -2998,36 +3081,12 @@ begin
      end;
 
 
-procedure TMainFrm.sbContrastChange(Sender: TObject);
-// --------------------------------------------------------
-// Set display grey scale to new contrast slider setting
-// --------------------------------------------------------
-var
-     GreyLevelMidPoint,GreyLevelRange : Integer ;
 
+
+procedure TMainFrm.rbImageHistogramClick(Sender: TObject);
 begin
-
-     if ContrastPage.ActivePage <> SlidersTab then Exit ;
-
-     GreyLevelMidPoint := sbBrightness.Max - sbBrightness.Position ;
-     GreyLevelRange := sbContrast.Max - sbContrast.Position ;
-     edDisplayIntensityRange.LoValue := Max( GreyLevelMidPoint - (GreyLevelRange div 2),0) ;
-     edDisplayIntensityRange.HiValue := Min( GreyLevelMidPoint + (GreyLevelRange div 2), ADCMaxValue);
-
-     if edDisplayIntensityRange.LoValue = edDisplayIntensityRange.HiValue then
-        begin
-        edDisplayIntensityRange.LoValue := edDisplayIntensityRange.LoValue - 1.0 ;
-        edDisplayIntensityRange.HiValue := edDisplayIntensityRange.HiValue + 1.0 ;
-        end ;
-
-     GreyLo[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.LoValue) ;
-     GreyHi[ImagePage.ActivePageIndex] := Round(edDisplayIntensityRange.HiValue) ;
-
-     UpdateLUT( ImagePage.ActivePageIndex, ADCMaxValue ) ;
-     UpdateDisplay := True ;
-
-     end;
-
+LastLineAddedtoHistogram := 1 ;
+end;
 
 procedure TMainFrm.scZSectionChange(Sender: TObject);
 // ---------------
@@ -3267,6 +3326,7 @@ begin
     AddElementDouble( iNode, 'ZSTEPTIME', ZStage.ZStepTime ) ;
     AddElementDouble( iNode, 'ZPOSITIONMAX', ZStage.ZPositionMax ) ;
     AddElementDouble( iNode, 'ZPOSITIONMIN', ZStage.ZPositionMin ) ;
+    AddElementInt( iNode, 'STAGEPROTECTIONTTLTRIGGER', ZStage.StageProtectionTTLTrigger ) ;
 
     AddElementText( ProtNode, 'SAVEDIRECTORY', SaveDirectory ) ;
 
@@ -3426,6 +3486,7 @@ begin
       ZStage.ZStepTime := GetElementDouble( iNode, 'ZSTEPTIME', ZStage.ZStepTime ) ;
       ZStage.ZPositionMax := GetElementDouble( iNode, 'ZPOSITIONMAX', ZStage.ZPositionMax ) ;
       ZStage.ZPositionMin := GetElementDouble( iNode, 'ZPOSITIONMIN', ZStage.ZPositionMin ) ;
+      ZStage.StageProtectionTTLTrigger := GetElementInt( iNode, 'STAGEPROTECTIONTTLTRIGGER', ZStage.StageProtectionTTLTrigger ) ;
       Inc(NodeIndex) ;
       end ;
 
@@ -3790,6 +3851,163 @@ begin
          end ;
       end ;
     end ;
+
+
+procedure TMainFrm.PlotHistogram ;
+// ---------------------------------------------------------
+// Calculate and set display for maximum grey scale contrast
+// ---------------------------------------------------------
+const
+    MaxPoints = 10000 ;
+    HistogramNumBins = 200 ;
+var
+     i,j,ch,ix : Integer ;
+     XLo,XMid,XHi: single ;
+     MaxLine : Integer ;
+  iLine: Integer;
+
+begin
+    //if not ScanningInProgress then exit ;
+
+    ch := 0 ;
+    if pImageBuf[ch] = Nil then Exit ;
+
+    if ScanningInProgress then
+       begin
+       MaxLine := LinesAvailableForDisplay - 1
+       end
+    else
+       begin
+       MaxLine := FrameHeight - 1 ;
+       LastLineAddedToHistogram := 1 ;
+       end;
+
+    if MaxLine < 0 then Exit ;
+    if MaxLine >= FrameHeight then Exit ;
+
+//    outputdebugstring(pchar(format('LinesAvailableForDisplay=%d',[MaxLine])));
+
+    // Clear histogram (if in line histogram mode
+    if rbLineHistogram.Checked then
+       begin
+       ClearHistogram ;
+       LastLineAddedToHistogram := MaxLine ;
+       end;
+
+    for ch := 0 to NumPMTChannels-1 do
+        begin
+        for iLine := LastLineAddedToHistogram to MaxLine do
+            begin
+
+            // Fill bins
+            j := iLine*FrameWidth ;
+            for i := 0 to FrameWidth-1 do
+                begin
+                ix := Max(Min(pImageBuf[ch]^[j] div BinWidth,HistogramNumBins-1),0) ;
+                Histogram[ch,ix] := Histogram[ch,ix] + 1.0 ;
+                Inc(j) ;
+                end;
+
+            // Find max. bin value
+            for i := 0 to HistogramNumBins-1 do
+                begin
+                if YMax < Histogram[ch,i] then YMax := Histogram[ch,i] ;
+                end ;
+            end ;
+        end;
+
+    LastLineAddedToHistogram := MaxLine ;
+
+    if rbYAxisLog.Checked then
+       begin
+       // Logarithmic Y axis
+       plHistogram.YAxisLaw := axLog ;
+       plHistogram.yAxisMin := 1.0 ;
+       plHistogram.yAxisMax := Max(YMax,1000.0);
+       end
+    else
+       begin
+       // Linear Y axis
+       plHistogram.YAxisLaw := axLinear ;
+       plHistogram.yAxisMin := 0.0 ;
+       plHistogram.yAxisMax := YMax ;
+       plHistogram.yAxisTick := YMax ;
+       end;
+
+    plHistogram.ClearPlot ;
+
+    for ch := 0 to NumPMTChannels-1 do
+        begin
+        // Create Histogram plot
+        if ch = 0 then plHistogram.CreateLine( ch, clGreen, msNone, psSolid )
+        else if ch = 1 then plHistogram.CreateLine( ch, clBlue, msNone, psSolid )
+        else if ch = 2 then plHistogram.CreateLine( ch, clRed, msNone, psSolid )
+        else plHistogram.CreateLine( ch, clGray, msNone, psSolid ) ;
+
+        XLo := 0.0 ;
+       for i := 0 to HistogramNumBins-1 do
+           begin
+           XHi := XLo + BinWidth ;
+           XMid := XLo + BinWidth*0.5 ;
+           plHistogram.AddPoint( ch,XMid,Histogram[ch,i]) ;
+           XLo := XLo + BinWidth ;
+           end ;
+
+        end ;
+
+end ;
+
+
+procedure TMainFrm.ClearHistogram ;
+// -----------------------
+// Clear bins in histogram
+// -----------------------
+var
+    ch,i : Integer ;
+begin
+    for ch := 0 to NumPMTChannels-1 do
+        begin
+        for i := 0 to HistogramNumBins-1 do
+            begin
+            Histogram[ch,i] := 1.0 ;
+            end;
+        end;
+
+    LastLineAddedToHistogram := 1 ;
+    YMax := FrameWidth*0.1 ;
+    if rbLineHistogram.Checked then YMax := YMax*FrameHeight*0.1 ;
+
+    end;
+
+procedure TMainFrm.CreateHistogramPlot ;
+// ------------------------------
+// Create plot of image histogram
+// ------------------------------
+begin
+
+    BinWidth := (ADCMaxValue+1) div HistogramNumBins ;
+
+    // Plot new Histogram }
+    plHistogram.xAxisAutoRange := False ;
+    plHistogram.xAxisMin := 0.0 ;
+    plHistogram.xAxisMax := BinWidth*(HistogramNumBins+1) ;
+    plHistogram.XAxisTick := plHistogram.xAxisMax ;
+    plHistogram.XAxisLabel := '' ;
+    plHistogram.yAxisAutoRange := False ;
+    plHistogram.yAxisMin := 1.0 ;
+    plHistogram.yAxisMax := FrameWidth ;
+    plHistogram.yAxisTick := FrameWidth ;
+    plHistogram.YAxisLabel := '' ;
+
+    plHistogram.ClearVerticalCursors ;
+    HistogramCursorLo := plHistogram.AddVerticalCursor( clGray, '|', 0 ) ;
+    HistogramCursorHi := plHistogram.AddVerticalCursor( clGray, '|', 0 ) ;
+    plHistogram.LinkVerticalCursors( HistogramCursorLo, HistogramCursorHi ) ;
+    plHistogram.VerticalCursors[HistogramCursorLo] := GreyLo[ImagePage.activepageindex] ;
+    plHistogram.VerticalCursors[HistogramCursorHi] := GreyHi[ImagePage.activepageindex] ;
+
+    end ;
+
 
 function TMainFrm.GetSpecialFolder(const ASpecialFolderID: Integer): string;
 // --------------------------

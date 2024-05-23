@@ -8,6 +8,7 @@ unit SettingsUnit;
 // 26.10.16 Frame height/widths limited to 10-30K
 // 10.05.17 ZPositionMin, ZPositionMax limits added
 // 14.05.18 edRawImagesDirectory added setting raw images folder to be changed by user
+// 22.05.24 ZStage.StageProtectionTTLTrigger added to settings;
 
 interface
 
@@ -138,6 +139,9 @@ type
     GroupBox1: TGroupBox;
     Label17: TLabel;
     edRawImagesDirectory: TEdit;
+    gpStageProtection: TGroupBox;
+    edStageProtectionTTLTrigger: TValidatedEdit;
+    Label37: TLabel;
     procedure FormShow(Sender: TObject);
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
@@ -232,6 +236,7 @@ begin
     ZStage.ZStepTime := edZStepTime.Value ;
     ZStage.ZPositionMin := edZPositionMin.Value ;
     ZStage.ZPositionMax := edZPositionMax.Value ;
+    ZStage.StageProtectionTTLTrigger := Round(edStageProtectionTTLTrigger.Value) ;
 
     MainFrm.ImageJPath := edImageJPath.Text ;
     MainFrm.SaveAsMultipageTIFF := ckSaveAsMultipageTIFF.Checked ;
@@ -242,6 +247,7 @@ begin
 
     Close ;
     end;
+
 
 procedure TSettingsFrm.cbZStageTypeChange(Sender: TObject);
 //
@@ -326,6 +332,7 @@ begin
     edZStepTime.Value := ZStage.ZStepTime ;
     edZPositionMin.Value := ZStage.ZPositionMin ;
     edZPositionMax.Value := ZStage.ZPositionMax ;
+    edStageProtectionTTLTrigger.Value := ZStage.StageProtectionTTLTrigger ;
 
     edImageJPath.Text := MainFrm.ImageJPath ;
     ckSaveAsMultipageTIFF.Checked := MainFrm.SaveAsMultipageTIFF ;

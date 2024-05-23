@@ -1110,7 +1110,7 @@ var
     Err : Integer ;
     ChannelName : ANSIString ;
     NumChannels : Integer ;
-    ChannelList : Array[0..255] of ANSICHar ;
+    ChannelList : Array[0..1023] of ANSICHar ;
     VRanges : Array[0..31] of Double ;
     SimultaneousSampling : LongBool ;
 begin
@@ -1199,7 +1199,7 @@ var
     i,Err : Integer ;
     ChannelName : ANSIString ;
     NumChannels : Integer ;
-    ChannelList : Array[0..255] of ANSICHar ;
+    ChannelList : Array[0..1023] of ANSICHar ;
     VRanges : Array[0..15] of Double ;
 begin
 

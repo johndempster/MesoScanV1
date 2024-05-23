@@ -278,11 +278,11 @@ else
   Comment: Install/Re-Install product
   Create Shortcut $SHORTCUTFOLDER$\Uninstall #TITLE# to $UNINSTALLLINK$
   [OFFLINE CONTENT]
-  Install Files C:\Users\John\Documents\Embarcadero\Studio\Projects\MesoScanXE\MesoScan.exe to $TARGETDIR$
   Get Folder Location Start Menu->Start Menu Group into SHORTCUTROOT
   Create Shortcut $SHORTCUTROOT$\MesoScan to $TARGETDIR$\MesoScan.exe
   Create Shortcut $SHORTCUTFOLDER$\MesoScan to $TARGETDIR$\MesoScan.exe
   Create Shortcut $DESKTOPDIR$\MesoScan to $TARGETDIR$\MesoScan.exe
+  Install Files C:\Users\John\Documents\Embarcadero\Studio\Projects\MesoScanV1\MesoScan.exe to $TARGETDIR$
   [DEFINE WEB MEDIA MesoScan Setup]
   Get Component MesoScan Setup Selection State into Variable SELECTED
   if Variable SELECTED Equals TRUE

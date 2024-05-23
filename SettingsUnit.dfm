@@ -53,7 +53,7 @@ object SettingsFrm: TSettingsFrm
     Top = 6
     Width = 761
     Height = 395
-    ActivePage = MiscTab
+    ActivePage = ScanTab
     TabOrder = 2
     object ScanTab: TTabSheet
       Caption = 'Scanning'
@@ -1095,12 +1095,39 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 1000000.000000000000000000
         end
       end
+      object gpStageProtection: TGroupBox
+        Left = 3
+        Top = 207
+        Width = 233
+        Height = 98
+        Caption = ' Stage Protection '
+        TabOrder = 1
+        object Label37: TLabel
+          Left = 27
+          Top = 20
+          Width = 143
+          Height = 39
+          Alignment = taRightJustify
+          Caption = 'Stage Protection TTL  Trigger Pulse (0=High-Low, 1=Low-High)'
+          WordWrap = True
+        end
+        object edStageProtectionTTLTrigger: TValidatedEdit
+          Left = 180
+          Top = 20
+          Width = 41
+          Height = 21
+          Hint = '1= Trigger  on High-Low, 0= Trigger on Low-High'
+          ShowHint = True
+          Text = ' 0 '
+          Scale = 1.000000000000000000
+          NumberFormat = '%.0f'
+          HiLimit = 1.000000000000000000
+        end
+      end
     end
     object MiscTab: TTabSheet
       Caption = 'Miscellaneous'
       ImageIndex = 4
-      ExplicitLeft = 0
-      ExplicitTop = 28
       object GroupBox3: TGroupBox
         Left = 8
         Top = 10

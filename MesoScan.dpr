@@ -1,6 +1,7 @@
 program MesoScan;
 
 uses
+  Winapi.Windows,System.SysUtils,VCL.Dialogs,   { Required for CreateMutex 22.5.24}
   Forms,
   MainUnit in 'MainUnit.pas' {MainFrm},
   nidaqmxlib in 'nidaqmxlib.pas',
@@ -13,6 +14,15 @@ uses
 {$R *.res}
 
 begin
+
+ // Prevent multiple instances
+  if CreateMutex(nil, True, 'Dempster.MesoScan') = 0 then RaiseLastOSError ;
+  if GetLastError = ERROR_ALREADY_EXISTS then
+     begin
+     ShowMessage('MesoScan - Program alreading running! Unable to start another.');
+     Exit;
+     end;
+
   Application.Initialize;
   Application.CreateForm(TMainFrm, MainFrm);
   Application.CreateForm(TLabIO, LabIO);

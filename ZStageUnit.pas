@@ -86,6 +86,8 @@ type
     ZPositionMin : Double ;  // Z position lower limit (um)
     ZScaleFactor : Double ;  // Z step scaling factor
     ZStepTime : Double ;     // Time to perform Z step (s)
+    StageProtectionTTLTrigger : Integer ; // Stage protection trigger
+                                          // 1= on TTL high, 0 = on TTL low
     procedure Open ;
     procedure Close ;
     procedure UpdateZPosition ;
@@ -150,6 +152,7 @@ begin
     RequestedXPos := 0.0 ;
     RequestedYPos := 0.0 ;
     RequestedZPos := 0.0 ;
+    StageProtectionTTLTrigger := 0 ; // Default = trigger on low (for V3+ protection stages)
 
     MoveToRequest := False ;
     StageInitRequired := False ;
@@ -686,11 +689,15 @@ begin
      SendCommand('TTLDEL,1') ;
      WaitforResponse('0') ;
 
-     SendCommand('TTLTP,1,1') ;       // Enable trigger on input #1 going high
-                                      // 19.04.21 Restored to going high for
-                                      // Strathclyde prototype system
-                                      // 14.09.20 Changed from high to low to work with
-                                      // new microswitch circuit in Mesoscope V3
+     // Enable trigger on input #1 going high
+     // 19.04.21 Restored to going high for
+     // Strathclyde prototype system
+     // 14.09.20 Changed from high to low to work with
+     // new microswitch circuit in Mesoscope V3
+     // 22.05.24 Now defined by setting StageProtectionTTLTrigger in INI file
+     StageProtectionTTLTrigger := Min(Max(StageProtectionTTLTrigger,0),1) ;
+     if StageProtectionTTLTrigger = 1 then SendCommand('TTLTP,1,1')
+                                      else SendCommand('TTLTP,1,0') ;
      WaitforResponse('0') ;
      SendCommand('TTLACT,1,70,0,0,0') ; // Stop all movement
      WaitforResponse('0') ;
