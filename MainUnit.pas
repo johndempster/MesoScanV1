@@ -53,6 +53,10 @@ unit MainUnit;
 //                 Form background now black
 //                 Prior stage protection interrupt TTL transition now defined in settings
 //                 MUTEX Dempster.MesoScan now prevents multiple instances
+// V1.7.4 27.05.24 Plot colours of histogram can now be associated with PMT
+//                 Repeat option turned off if scanning in high resolution mode
+//                 Multiple copies of images no longer incorrectly saved after imaging in repeat mode
+//                 Size of mouse grab areas on ROI box increaseed
 
 interface
 
@@ -204,6 +208,11 @@ type
     ckContrast6SDOnly: TCheckBox;
     bRange: TButton;
     bCursors: TButton;
+    ColorDialog: TColorDialog;
+    gpPMTColor0: TGroupBox;
+    gpPMTColor1: TGroupBox;
+    gpPMTColor2: TGroupBox;
+    gpPMTColor3: TGroupBox;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
@@ -262,6 +271,7 @@ type
     procedure rbImageHistogramClick(Sender: TObject);
     procedure bCursorsClick(Sender: TObject);
     procedure ImagePageChange(Sender: TObject);
+    procedure gpPMTColor0Click(Sender: TObject);
   private
     { Private declarations }
         BitMap : Array[0..MaxPMT] of TBitMap ;  // Image internal bitmaps
@@ -350,6 +360,7 @@ type
     PMTList : Array[0..MaxPMT] of Integer ;
     NumPMTChannels : Integer ;
     ImageNames : Array[0..MaxPMT] of string ;
+    ImageColors : Array[0..MaxPMT] of TColor ;
 
     //NumPixelsPerFrame : Integer ;
     NumADCChannels : Integer ;
@@ -617,13 +628,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.3 ';
+     Caption := 'MesoScan V1.7.4 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 22/05/24';
+    Caption := Caption + ' 27/05/24';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -906,7 +917,7 @@ procedure TMainFrm.Image0MouseMove(Sender: TObject; Shift: TShiftState; X,
 // Mouse moved over image
 // ----------------------
 const
-    EdgeSize = 3 ;
+    EdgeSize = 5 ;
 var
     i,ch : Integer ;
     XRight,YBottom,XShift,YShift : Integer ;
@@ -1626,14 +1637,15 @@ procedure TMainFrm.DisplaySquare(
           Bitmap : TBitmap ;
           X : Integer ;
           Y : Integer ) ;
+const
+    HalfWidth = 6 ;
 var
     Square : TRect ;
 begin
-     Square.Left := X - 4 ;
-     Square.Right := X + 4 ;
-     Square.Top := Y - 4 ;
-     Square.Bottom := Y + 4 ;
-     //Bitmap.Canvas.Pen.Color := clwhite ;
+     Square.Left := X - HalfWidth ;
+     Square.Right := X + HalfWidth ;
+     Square.Top := Y - HalfWidth ;
+     Square.Bottom := Y + HalfWidth ;
      Bitmap.Canvas.Brush.Style := bsSolid ;
      Bitmap.Canvas.Rectangle(Square);
 
@@ -1952,6 +1964,9 @@ begin
     bScanZoomIn.Enabled := False ;
     bScanZoomOut.Enabled := False ;
     bScanFull.Enabled := False ;
+
+    // Turn off repeat scan if in high resolution mode
+    if rbHRScan.Checked then ckRepeat.Checked := False ;
 
 //    PMTGrp.Enabled := False ;    // Disable changes to PMT settings
 
@@ -2315,10 +2330,6 @@ procedure TMainFrm.edPMTVolts0KeyPress(Sender: TObject; var Key: Char);
 begin
     if Key = #13 then
        begin
- {      udPMTVolts0.Position := Round(edPMTVolts0.Value) ;
-       udPMTVolts1.Position := Round(edPMTVolts1.Value) ;
-       udPMTVolts2.Position := Round(edPMTVolts2.Value) ;
-       udPMTVolts3.Position := Round(edPMTVolts3.Value) ;}
        SetAllPMTVoltages ;
        end;
     end;
@@ -2661,8 +2672,11 @@ begin
           Inc(NumRepeats) ;
           // If images are to be saved for later averaging increment section number
           // otherwise only increment when averaging completed
-          if ckKeepRepeats.Checked then Inc(ZSection)
-          else if NumAverages > Round(edNumRepeats.Value) then Inc(ZSection) ;
+          if not ckRepeat.Checked then
+             begin
+             if ckKeepRepeats.Checked then Inc(ZSection)
+             else if NumAverages > Round(edNumRepeats.Value) then Inc(ZSection) ;
+             end;
           end;
 
        if NumRepeats <= Round(edNumRepeats.Value) then
@@ -3058,6 +3072,17 @@ begin
   DisplayMaxWidth := ImageGrp.ClientWidth - Image0.Left - 5 ;
   DisplayMaxHeight := ImageGrp.ClientHeight - Image0.Top - 5 - ZSectionPanel.Height ;
 
+  if PanelPMT3.Visible then PMTGrp.ClientHeight := PanelPMT3.Top + PanelPMT3.Height + 5
+  else if PanelPMT2.Visible then PMTGrp.ClientHeight := PanelPMT2.Top + PanelPMT2.Height + 5
+  else if PanelPMT1.Visible then PMTGrp.ClientHeight := PanelPMT1.Top + PanelPMT1.Height + 5
+  else PMTGrp.ClientHeight := PanelPMT0.Top + PanelPMT0.Height + 5 ;
+
+  LaserGrp.Top := PMTGrp.Top + PMTGrp.Height + 5 ;
+  DisplayGrp.Top := LaserGrp.Top + LaserGrp.Height + 5 ;
+  StatusGrp.Top := DisplayGrp.Top + DisplayGrp.Height + 5 ;
+
+
+
   SetImagePanels ;
   UpdateDisplay := True ;
 
@@ -3078,9 +3103,8 @@ procedure TMainFrm.rbHRScanClick(Sender: TObject);
 // ----------------------
 begin
      rbFastScan.Checked := False ;
+     ckRepeat.Checked := False ;
      end;
-
-
 
 
 procedure TMainFrm.rbImageHistogramClick(Sender: TObject);
@@ -3088,15 +3112,16 @@ begin
 LastLineAddedtoHistogram := 1 ;
 end;
 
+
 procedure TMainFrm.scZSectionChange(Sender: TObject);
 // ---------------
 // Z Section changed
 // ---------------
 begin
 
-     ZSection := scZSection.Position ;
      if not bStopScan.Enabled then
         begin
+        ZSection := scZSection.Position ;
         LoadRawImage( RawImagesFileName, ZSection ) ;
         UpdateDisplay := True ;
         end;
@@ -3311,6 +3336,11 @@ begin
     AddElementDouble( iNode, 'VOLTS1', edPMTVolts1.Value ) ;
     AddElementDouble( iNode, 'VOLTS2', edPMTVolts2.Value ) ;
     AddElementDouble( iNode, 'VOLTS3', edPMTVolts3.Value ) ;
+    AddElementINT( iNode, 'PMTCOLOR0', Integer(gpPMTColor0.Color) ) ;
+    AddElementINT( iNode, 'PMTCOLOR1', Integer(gpPMTColor1.Color) ) ;
+    AddElementINT( iNode, 'PMTCOLOR2', Integer(gpPMTColor2.Color) ) ;
+    AddElementINT( iNode, 'PMTCOLOR3', Integer(gpPMTColor3.Color) ) ;
+
     for ch := 0 to High(PMTControls) do
         begin
         AddElementINT( iNode, format('CONTROL%d',[ch]), PMTControls[ch] ) ;
@@ -3456,6 +3486,12 @@ begin
           edPMTVolts1.Value := GetElementDouble( iNode, 'VOLTS1', edPMTVolts1.Value ) ;
           edPMTVolts2.Value := GetElementDouble( iNode, 'VOLTS2', edPMTVolts2.Value ) ;
           edPMTVolts3.Value := GetElementDouble( iNode, 'VOLTS3', edPMTVolts3.Value ) ;
+
+          gpPMTColor0.Color := TColor( GetElementINT( iNode, 'PMTCOLOR0', Integer(gpPMTColor0.Color) ) );
+          gpPMTColor1.Color := TColor( GetElementINT( iNode, 'PMTCOLOR1', Integer(gpPMTColor1.Color) ) );
+          gpPMTColor2.Color := TColor( GetElementINT( iNode, 'PMTCOLOR2', Integer(gpPMTColor2.Color) ) );
+          gpPMTColor3.Color := TColor( GetElementINT( iNode, 'PMTCOLOR3', Integer(gpPMTColor3.Color) ) );
+
           for ch := 0 to High(PMTControls) do begin
               PMTControls[ch] := GetElementINT( iNode, format('CONTROL%d',[ch]),PMTControls[ch] ) ;
               end ;
@@ -3548,21 +3584,25 @@ begin
   if ckEnablePMT0.Checked and PanelPMT0.Visible then
      begin
      ImageNames[NumPMTChannels] := 'PMT0' ;
+     ImageColors[NumPMTChannels] := gpPMTColor0.Color ;
      Inc(NumPMTChannels) ;
      end;
   if ckEnablePMT1.Checked and PanelPMT1.Visible then
      begin
      ImageNames[NumPMTChannels] := 'PMT1' ;
+     ImageColors[NumPMTChannels] := gpPMTColor1.Color ;
      Inc(NumPMTChannels) ;
      end;
   if ckEnablePMT2.Checked and PanelPMT2.Visible then
      begin
      ImageNames[NumPMTChannels] := 'PMT2' ;
+     ImageColors[NumPMTChannels] := gpPMTColor2.Color ;
      Inc(NumPMTChannels) ;
      end;
   if ckEnablePMT3.Checked and PanelPMT3.Visible then
      begin
      ImageNames[NumPMTChannels] := 'PMT3' ;
+     ImageColors[NumPMTChannels] := gpPMTColor3.Color ;
      Inc(NumPMTChannels) ;
      end;
 
@@ -3938,11 +3978,9 @@ begin
 
     for ch := 0 to NumPMTChannels-1 do
         begin
+
         // Create Histogram plot
-        if ch = 0 then plHistogram.CreateLine( ch, clGreen, msNone, psSolid )
-        else if ch = 1 then plHistogram.CreateLine( ch, clBlue, msNone, psSolid )
-        else if ch = 2 then plHistogram.CreateLine( ch, clRed, msNone, psSolid )
-        else plHistogram.CreateLine( ch, clGray, msNone, psSolid ) ;
+        plHistogram.CreateLine( ch, ImageColors[ch], msNone, psSolid ) ;
 
         XLo := 0.0 ;
        for i := 0 to HistogramNumBins-1 do
@@ -4022,6 +4060,15 @@ begin
 
     end;
 
+
+procedure TMainFrm.gpPMTColor0Click(Sender: TObject);
+// -----------------------
+// PMT Colour box clicked
+// -----------------------
+begin
+    ColorDialog.Execute ;
+    TGroupBox(Sender).Color := ColorDialog.Color ;
+end;
 
 end.
 

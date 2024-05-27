@@ -69,14 +69,14 @@ object MainFrm: TMainFrm
     end
     object ckRepeat: TCheckBox
       Left = 220
-      Top = 56
-      Width = 100
+      Top = 26
+      Width = 65
       Height = 17
       Hint = 'Repeated image scanning'
       Caption = 'Repeat'
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
-      Font.Height = -13
+      Font.Height = -12
       Font.Name = 'Arial'
       Font.Style = [fsBold]
       ParentFont = False
@@ -106,7 +106,7 @@ object MainFrm: TMainFrm
     end
     object rbHRScan: TRadioButton
       Left = 220
-      Top = 33
+      Top = 55
       Width = 100
       Height = 17
       Hint = 'High resolution image'
@@ -230,7 +230,7 @@ object MainFrm: TMainFrm
       object lbZSection: TLabel
         Left = 119
         Top = 0
-        Width = 34
+        Width = 32
         Height = 16
         Caption = 'xxxx'
         Font.Charset = ANSI_CHARSET
@@ -387,7 +387,7 @@ object MainFrm: TMainFrm
     end
     object ZStackGrp: TGroupBox
       Left = 12
-      Top = 96
+      Top = 105
       Width = 190
       Height = 104
       TabOrder = 1
@@ -461,9 +461,9 @@ object MainFrm: TMainFrm
       end
     end
     object cbImageMode: TComboBox
-      Left = 92
+      Left = 12
       Top = 19
-      Width = 191
+      Width = 268
       Height = 21
       Hint = 'Image acquisition mode'
       Style = csDropDownList
@@ -474,7 +474,7 @@ object MainFrm: TMainFrm
     end
     object LineScanGrp: TGroupBox
       Left = 12
-      Top = 100
+      Top = 105
       Width = 190
       Height = 104
       TabOrder = 3
@@ -533,7 +533,7 @@ object MainFrm: TMainFrm
     Left = 8
     Top = 339
     Width = 297
-    Height = 75
+    Height = 54
     Caption = 'Z Position '
     Color = clGray
     ParentBackground = False
@@ -542,9 +542,10 @@ object MainFrm: TMainFrm
     object edZTop: TValidatedEdit
       Left = 12
       Top = 16
-      Width = 166
+      Width = 115
       Height = 24
       Hint = 'Stage position on Z axis'
+      Color = clYellow
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -13
@@ -559,9 +560,9 @@ object MainFrm: TMainFrm
       HiLimit = 10.000000000000000000
     end
     object edGotoZPosition: TValidatedEdit
-      Left = 184
-      Top = 44
-      Width = 102
+      Left = 192
+      Top = 16
+      Width = 100
       Height = 24
       Hint = 'Z axis position to move to'
       OnKeyPress = edGotoZPositionKeyPress
@@ -579,9 +580,9 @@ object MainFrm: TMainFrm
       HiLimit = 1000000.000000000000000000
     end
     object bGotoZPosition: TButton
-      Left = 184
+      Left = 133
       Top = 16
-      Width = 102
+      Width = 57
       Height = 22
       Hint = 'Move stage to specified Z axis position'
       Caption = 'Go To'
@@ -599,7 +600,7 @@ object MainFrm: TMainFrm
   end
   object PMTGrp: TGroupBox
     Left = 8
-    Top = 420
+    Top = 400
     Width = 297
     Height = 149
     Caption = ' PMT Channels  '
@@ -623,8 +624,8 @@ object MainFrm: TMainFrm
     end
     object PanelPMT0: TPanel
       Left = 3
-      Top = 30
-      Width = 186
+      Top = 35
+      Width = 238
       Height = 28
       BevelOuter = bvNone
       TabOrder = 0
@@ -692,11 +693,22 @@ object MainFrm: TMainFrm
         TabOrder = 3
         OnChangingEx = udPMTVolts0ChangingEx
       end
+      object gpPMTColor0: TGroupBox
+        Left = 181
+        Top = 3
+        Width = 20
+        Height = 20
+        Color = clGreen
+        ParentBackground = False
+        ParentColor = False
+        TabOrder = 4
+        OnClick = gpPMTColor0Click
+      end
     end
     object PanelPMT1: TPanel
       Left = 3
       Top = 59
-      Width = 186
+      Width = 238
       Height = 28
       BevelOuter = bvNone
       TabOrder = 1
@@ -762,11 +774,22 @@ object MainFrm: TMainFrm
         TabOrder = 3
         OnChangingEx = udPMTVolts1ChangingEx
       end
+      object gpPMTColor1: TGroupBox
+        Left = 181
+        Top = 3
+        Width = 20
+        Height = 20
+        Color = clGreen
+        ParentBackground = False
+        ParentColor = False
+        TabOrder = 4
+        OnClick = gpPMTColor0Click
+      end
     end
     object PanelPMT2: TPanel
       Left = 3
       Top = 86
-      Width = 186
+      Width = 238
       Height = 28
       BevelOuter = bvNone
       TabOrder = 2
@@ -832,11 +855,22 @@ object MainFrm: TMainFrm
         TabOrder = 3
         OnChangingEx = udPMTVolts2ChangingEx
       end
+      object gpPMTColor2: TGroupBox
+        Left = 181
+        Top = 3
+        Width = 20
+        Height = 20
+        Color = clGreen
+        ParentBackground = False
+        ParentColor = False
+        TabOrder = 4
+        OnClick = gpPMTColor0Click
+      end
     end
     object PanelPMT3: TPanel
       Left = 3
       Top = 113
-      Width = 186
+      Width = 238
       Height = 28
       BevelOuter = bvNone
       TabOrder = 3
@@ -902,11 +936,22 @@ object MainFrm: TMainFrm
         TabOrder = 3
         OnChangingEx = udPMTVolts3ChangingEx
       end
+      object gpPMTColor3: TGroupBox
+        Left = 181
+        Top = 3
+        Width = 20
+        Height = 20
+        Color = clGreen
+        ParentBackground = False
+        ParentColor = False
+        TabOrder = 4
+        OnClick = gpPMTColor0Click
+      end
     end
   end
   object LaserGrp: TGroupBox
     Left = 8
-    Top = 578
+    Top = 560
     Width = 297
     Height = 56
     Caption = ' Laser '
@@ -978,7 +1023,7 @@ object MainFrm: TMainFrm
   end
   object DisplayGrp: TGroupBox
     Left = 8
-    Top = 640
+    Top = 622
     Width = 297
     Height = 406
     Caption = ' Display '
@@ -1274,7 +1319,7 @@ object MainFrm: TMainFrm
   end
   object StatusGrp: TGroupBox
     Left = 8
-    Top = 1052
+    Top = 1034
     Width = 297
     Height = 81
     TabOrder = 7
@@ -1340,5 +1385,9 @@ object MainFrm: TMainFrm
         OnClick = mnScanSettingsClick
       end
     end
+  end
+  object ColorDialog: TColorDialog
+    Left = 251
+    Top = 478
   end
 end
