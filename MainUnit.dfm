@@ -327,10 +327,18 @@ object MainFrm: TMainFrm
       OnChange = ImagePageChange
       object TabImage0: TTabSheet
         Caption = 'PMT0'
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
       end
       object TabImage1: TTabSheet
         Caption = 'TabImage1'
         ImageIndex = 1
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
       end
       object TabImage2: TTabSheet
         Caption = 'TabImage2'
@@ -339,6 +347,10 @@ object MainFrm: TMainFrm
       object TabImage3: TTabSheet
         Caption = 'TabImage3'
         ImageIndex = 3
+        ExplicitLeft = 0
+        ExplicitTop = 0
+        ExplicitWidth = 0
+        ExplicitHeight = 0
       end
     end
   end

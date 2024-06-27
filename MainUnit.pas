@@ -22,7 +22,7 @@ unit MainUnit;
 //                 FrameHeight now forced to be greater than 1.
 //                 PMT gain menus now forced to valid settings
 // V1.5.7 14.05.15 Z position is now incremented one step at end of stack
-//                 rather than being returned to top of stack to allow stack to be extended
+//                 rather than being returned to top of stack to allow stack to be extended                                                                                 k
 //                 Scan Full Field now correctly zooms out to full field (rather than
 //                 to next wider zoom setting)
 // V1.5.8 08.03.16 Beam now parked at 0,0 by last line of scan and unparked in first line
@@ -57,6 +57,9 @@ unit MainUnit;
 //                 Repeat option turned off if scanning in high resolution mode
 //                 Multiple copies of images no longer incorrectly saved after imaging in repeat mode
 //                 Size of mouse grab areas on ROI box increaseed
+// V1.7.5 26.06.24 Beam parking in first & last half scan cycles updated to linearly decrement sine amplitde to zero
+//                 and Y position exponentially to zero. To fix audible galvo 'click' at start/end of scan.
+//                 Display pixel readout cursor readout now updated when page changed.
 
 interface
 
@@ -69,6 +72,7 @@ uses
 
 const
     VMax = 10.0 ;
+    NumGalvoDACs = 2 ;
     MaxFrameWidth = 30000 ;
     MaxFrameHeight = 30000 ;
     MinFrameWidth = 10 ;
@@ -628,13 +632,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.4 ';
+     Caption := 'MesoScan V1.7.5 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 27/05/24';
+    Caption := Caption + ' 27/06/24';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -933,7 +937,8 @@ begin
      PixelsToMicronsX := ScanArea[iScanZoom].Width/FrameWidth ;
      PixelsToMicronsY := FrameHeightScale*PixelsToMicronsX ;
 
-     if (i > 0) and (i < FrameWidth*FrameHeight) then begin
+     if (i > 0) and (i < FrameWidth*FrameHeight) then
+        begin
         lbReadout.Caption := format('X=%.2f um, Y=%.2f um, I=%d',
                            [XImage*PixelsToMicronsX + ScanArea[iScanZoom].Left,
                             YImage*PixelsToMicronsY + ScanArea[iScanZoom].Top,
@@ -1078,7 +1083,7 @@ begin
      // Set intensity range and histogram cursors
      SetDisplayIntensityRange( MainFrm.GreyLo[ImagePage.activepageindex],
                                MainFrm.GreyHi[ImagePage.activepageindex] ) ;
-
+     UpdateDisplay := True ;
 end;
 
 
@@ -1139,6 +1144,10 @@ begin
      ImagePage.Width := ImageGrp.ClientWidth - ImagePage.Left - 5 ;
 
 //     ImagePage.Height := ZSectionPanel.Top - ImagePage.Top - 2 ;
+
+     // Set tag to PMT image index (used to determine which PMT image is displayed)
+     Image0.Tag := ImagePage.TabIndex ;
+
      Image0.Top := ImagePage.Top + ImagePage.Height ;
      Image0.Height := ZSectionPanel.Top - Image0.Top - 2 ;
 
@@ -1272,14 +1281,14 @@ procedure TMainFrm.CreateScanWaveform ;
 // ------------------------------
 var
     XPeriod,HalfPi,ScanSpeed : Double ;
-    XCentre,YCentre,XAmplitude,YHeight,PCDOne : Double ;
+    XCentre,YCentre,XAmplitude,YAmplitude,YHeight,PCDOne : Double ;
     n,ch,iX,iY,iY1,i,j,k,iShift,kStart,kShift : Integer ;
     SineWaveForwardScan,SineWaveReverseScan,SineWaveCorrection : PBig16BitArray ;
     NumBytes : NativeInt ;
     NumXEdgePixels,NumYEdgePixels : Cardinal ;
     NumPix : Cardinal ;
     NumLinesInDACBuf : Cardinal ;
-    XDAC,YDAC : SmallInt ;
+    YDAC : SmallInt ;
     Amplitude : Double ;
 begin
 
@@ -1336,7 +1345,7 @@ begin
     NumPixelsInDACBuf := NumPixels ;
     NumLinesinDACBuf := NumPixelsInDACBuf div NumXPixels ;
     NumPixelsInDACBuf := NumLinesinDACBuf*NumXPixels ;
-    NumBytes := Int64(NumPixels)*Int64(SizeOf(SmallInt)*2) ;
+    NumBytes := Int64(NumPixels)*Int64(SizeOf(SmallInt)*NumGalvoDACs) ;
     DACBuf := AllocMem( NumBytes ) ;
 
     GetMem( SineWaveForwardScan, NumXPixels*SizeOf(SmallInt) ) ;
@@ -1368,7 +1377,7 @@ begin
           // XY and XYZ modes
           YStartMicrons := YCentre - YHeight*0.5 ;
           YEndMicrons := YCentre + YHeight*0.5 ;
-          YLineSpacingMicrons := YHeight/(NumYPixels-2*NumBeamParkLines) ;
+          YLineSpacingMicrons := YHeight/(NumYPixels{-2*NumBeamParkLines}) ;
           end ;
        end;
 
@@ -1399,7 +1408,7 @@ begin
                begin
                DACBuf^[j] := SineWaveForwardScan^[iX] ;
                DACBuf^[j+1] := YDAC ;
-               j := j + 2 ;
+               j := j + NumGalvoDACs ;
                end ;
            end
         else
@@ -1409,7 +1418,7 @@ begin
                begin
                DACBuf^[j] := SineWaveReverseScan^[iX] ;
                DACBuf^[j+1] := YDAC ;
-               j := j + 2 ;
+               j := j + NumGalvoDACs ;
                end ;
            end ;
 
@@ -1459,27 +1468,26 @@ begin
         end ;
 
      // Modify first line to smoothly unpark beam from centre position to top/left of imaging area
-     YDAC := DACBuf^[1] ;
-     XDAC := DACBuf^[0] ;
      j := 0 ;
      for iX := 0 to NumXPixels-1 do
          begin
-         Amplitude := 0.5*(1.0 - cos((iX*Pi)/(NumXPixels-1)));
-         DACBuf^[j] := Round(XDAC*Amplitude) ;
-         DACBuf^[j+1] := Round(YDAC*Amplitude) ;
-         j := j + 2 ;
+         XAmplitude := iX/(NumXPixels-1) ;
+         YAmplitude := 1.0 - exp(-(iX*4.0)/NumXPixels) ;
+         DACBuf^[j] := Round(DACBuf^[j]*XAmplitude) ;
+         DACBuf^[j+1] := Round(DACBuf^[j+1]*YAmplitude) ;
+         j := j + NumGalvoDACs ;
          end ;
 
      // Modify last line to smoothly park beam at centre position from bottom/right of imaging area
-     j := (NumYPixels-1)*NumXPixels*2 + (NumXPixels-1)*2;
-     YDAC := DACBuf^[j+1] ;
-     XDAC := DACBuf^[j] ;
+     j := (NumPixels - NumXPixels)*NumGalvoDACs ;
      for iX := 0 to NumXPixels-1 do
          begin
-         Amplitude := 0.5*(1.0 - cos((iX*Pi)/(NumXPixels-1)));
-         DACBuf^[j] := Round(XDAC*Amplitude) ;
-         DACBuf^[j+1] := Round(YDAC*Amplitude) ;
-         j := j - 2 ;
+    //     Amplitude := iX/(NumXPixels-1) ;
+         XAmplitude := 1.0 - (iX/(NumXPixels-1)) ;
+         YAmplitude := exp(-(iX*4.0)/NumXPixels) ;
+         DACBuf^[j] := Round(DACBuf^[j]*XAmplitude) ;
+         DACBuf^[j+1] := Round(DACBuf^[j+1]*YAmplitude) ;
+         j := j + NumGalvoDACs ;
          end ;
 
     // Discard reverse scans when in unidirectional scan mode
@@ -1538,7 +1546,7 @@ begin
         begin
         iY := Max((ADCMap^[i] div NumXPixels) - NumYEdgePixels,0) ;
         iX := Max((ADCMap^[i] mod NumXPixels) - NumXEdgePixels,0) ;
-        if iX < FrameWidth then ADCMap^[i] := Min(Max(iY*FrameWidth + iX,0),NumPix)
+        if true {iX < FrameWidth} then ADCMap^[i] := Min(Max(iY*FrameWidth + iX,0),NumPix)
                            else ADCMap^[i] := 0 ;
         if n = 1000000 then PercentDone(PCDone,n,NumPixels)
                        else Inc(n) ;
@@ -1547,6 +1555,8 @@ begin
     FreeMem( SineWaveCorrection ) ;
     FreeMem( SineWaveForwardScan ) ;
     FreeMem( SineWaveReverseScan ) ;
+
+    outputdebugstring(pchar(format('%d %d %d %d',[DacBuf^[0],DacBuf^[1],DacBuf^[NumPixels*2 -2],DacBuf^[NumPixels*2 -1]])));
 
     end ;
 
@@ -1665,6 +1675,8 @@ var
 begin
 
     //SetImagePanels ;
+
+    Image0.tag := ImagePage.TabIndex ;
 
     for ch  := 0 to NumPMTChannels-1 do if pImageBuf[ch] <> Nil then
        begin
@@ -2562,6 +2574,9 @@ begin
     if InvertPMTSignal then iSign := -1
                        else iSign := 1 ;
 
+       outputdebugstring(pchar(format('ADCBuf start-end = %d, %d, %d, %d',
+       [ADCBuf^[0],ADCBuf^[1],ADCBuf^[(NumPixels*NumPMTChannels)-2],ADCBuf^[(NumPixels*NumPMTChannels)-1]]))) ;
+
     for i := ADCStart to ADCEnd do
         begin
         ADCPointer := i ;
@@ -3080,8 +3095,6 @@ begin
   LaserGrp.Top := PMTGrp.Top + PMTGrp.Height + 5 ;
   DisplayGrp.Top := LaserGrp.Top + LaserGrp.Height + 5 ;
   StatusGrp.Top := DisplayGrp.Top + DisplayGrp.Height + 5 ;
-
-
 
   SetImagePanels ;
   UpdateDisplay := True ;
