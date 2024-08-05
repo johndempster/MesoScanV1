@@ -60,6 +60,7 @@ unit MainUnit;
 // V1.7.5 26.06.24 Beam parking in first & last half scan cycles updated to linearly decrement sine amplitde to zero
 //                 and Y position exponentially to zero. To fix audible galvo 'click' at start/end of scan.
 //                 Display pixel readout cursor readout now updated when page changed.
+// V1.7.6 05.08.24 PMT electron gain control now remains active during scan
 
 interface
 
@@ -290,6 +291,7 @@ type
         procedure SetImageSize(
                   Image : TImage ) ;
         function GetSpecialFolder(const ASpecialFolderID: Integer): string;
+        procedure EnablePMTControls( Enabled : Boolean ) ;
 
   public
     { Public declarations }
@@ -632,13 +634,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.5 ';
+     Caption := 'MesoScan V1.7.6 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 27/06/24';
+    Caption := Caption + ' 05/08/24';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -1980,8 +1982,6 @@ begin
     // Turn off repeat scan if in high resolution mode
     if rbHRScan.Checked then ckRepeat.Checked := False ;
 
-//    PMTGrp.Enabled := False ;    // Disable changes to PMT settings
-
     if cbImageMode.ItemIndex = XYZMode then ckRepeat.Checked := False  ;
 
     FixRectangle( SelectedRect ) ;
@@ -2480,8 +2480,8 @@ procedure TMainFrm.TimerTimer(Sender: TObject);
 // --------------------------
 begin
 
-    if ScanningInProgress then PMTGrp.Enabled := False
-                          else PMTGrp.Enabled := True ;
+    if ScanningInProgress then EnablePMTControls( False )
+                          else EnablePMTControls( True ) ;
 
     if UpdateDisplay then
        begin ;
@@ -2513,6 +2513,30 @@ begin
     edZTop.Text := format('%.2f um',[ZStage.ZPosition]) ;
 
     end;
+
+
+procedure TMainFrm.EnablePMTControls( Enabled : Boolean ) ;
+// --------------------------------------
+// Enable/Disable changes to PMT controls
+// --------------------------------------
+begin
+
+     if ckEnablePMT0.Enabled <> Enabled then ckEnablePMT0.Enabled := Enabled ;
+     if ckEnablePMT1.Enabled <> Enabled then ckEnablePMT1.Enabled := Enabled ;
+     if ckEnablePMT2.Enabled <> Enabled then ckEnablePMT2.Enabled := Enabled ;
+     if ckEnablePMT3.Enabled <> Enabled then ckEnablePMT3.Enabled := Enabled ;
+
+     if cbPMTGain0.Enabled <> Enabled then cbPMTGain0.Enabled := Enabled ;
+     if cbPMTGain1.Enabled <> Enabled then cbPMTGain1.Enabled := Enabled ;
+     if cbPMTGain2.Enabled <> Enabled then cbPMTGain2.Enabled := Enabled ;
+     if cbPMTGain3.Enabled <> Enabled then cbPMTGain3.Enabled := Enabled ;
+
+     if gpPMTColor0.Enabled <> Enabled then gpPMTColor0.Enabled := Enabled ;
+     if gpPMTColor1.Enabled <> Enabled then gpPMTColor1.Enabled := Enabled ;
+     if gpPMTColor2.Enabled <> Enabled then gpPMTColor2.Enabled := Enabled ;
+     if gpPMTColor3.Enabled <> Enabled then gpPMTColor3.Enabled := Enabled ;
+
+end;
 
 
 procedure TMainFrm.udPMTVolts0ChangingEx(Sender: TObject;
@@ -2779,7 +2803,6 @@ begin
     bScanZoomIn.Enabled := True ;
     bScanZoomOut.Enabled := True ;
     bScanFull.Enabled := True ;
-//    PMTGrp.Enabled := True ;    // Enable changes to PMT settings
 
     ScanRequested := 0 ;
     ScanningInProgress := False ;

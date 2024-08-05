@@ -2,7 +2,7 @@ object MainFrm: TMainFrm
   Left = 794
   Top = 357
   Caption = 'MesoScan V1.6.9 64 bit 20/1/20'
-  ClientHeight = 1141
+  ClientHeight = 1122
   ClientWidth = 828
   Color = clBlack
   DoubleBuffered = True
@@ -12,18 +12,16 @@ object MainFrm: TMainFrm
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   Menu = MainMenu1
-  OldCreateOrder = False
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnResize = FormResize
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
   object ControlGrp: TGroupBox
     Left = 8
-    Top = 8
+    Top = 0
     Width = 297
     Height = 97
     Caption = ' Scan Control '
@@ -69,7 +67,7 @@ object MainFrm: TMainFrm
     end
     object ckRepeat: TCheckBox
       Left = 220
-      Top = 26
+      Top = 28
       Width = 65
       Height = 17
       Hint = 'Repeated image scanning'
@@ -327,18 +325,10 @@ object MainFrm: TMainFrm
       OnChange = ImagePageChange
       object TabImage0: TTabSheet
         Caption = 'PMT0'
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
       end
       object TabImage1: TTabSheet
         Caption = 'TabImage1'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
       end
       object TabImage2: TTabSheet
         Caption = 'TabImage2'
@@ -347,16 +337,12 @@ object MainFrm: TMainFrm
       object TabImage3: TTabSheet
         Caption = 'TabImage3'
         ImageIndex = 3
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
       end
     end
   end
   object ImageSizeGrp: TGroupBox
     Left = 8
-    Top = 111
+    Top = 102
     Width = 297
     Height = 222
     Caption = ' Image '
@@ -543,7 +529,7 @@ object MainFrm: TMainFrm
   end
   object ZStageGrp: TGroupBox
     Left = 8
-    Top = 339
+    Top = 327
     Width = 297
     Height = 54
     Caption = 'Z Position '
@@ -582,7 +568,7 @@ object MainFrm: TMainFrm
       Font.Color = clWindowText
       Font.Height = -13
       Font.Name = 'MS Sans Serif'
-      Font.Style = []
+      Font.Style = [fsBold]
       ShowHint = True
       Text = ' 0.00 um'
       Scale = 1.000000000000000000
@@ -612,9 +598,9 @@ object MainFrm: TMainFrm
   end
   object PMTGrp: TGroupBox
     Left = 8
-    Top = 400
+    Top = 385
     Width = 297
-    Height = 149
+    Height = 180
     Caption = ' PMT Channels  '
     Color = clGray
     ParentBackground = False
@@ -638,21 +624,21 @@ object MainFrm: TMainFrm
       Left = 3
       Top = 35
       Width = 238
-      Height = 28
+      Height = 30
       BevelOuter = bvNone
       TabOrder = 0
       object cbPMTGain0: TComboBox
         Left = 53
-        Top = 0
+        Top = 2
         Width = 49
-        Height = 23
+        Height = 24
         Hint = 'PMT amplifier gain'
         Style = csDropDownList
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Arial Narrow'
-        Font.Style = []
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         ItemIndex = 0
         ParentFont = False
         ParentShowHint = False
@@ -667,13 +653,18 @@ object MainFrm: TMainFrm
       object edPMTVolts0: TValidatedEdit
         Left = 108
         Top = 2
-        Width = 51
-        Height = 21
+        Width = 65
+        Height = 24
         Hint = 'PMT voltage (% of maximum)'
         OnKeyPress = edPMTVolts0KeyPress
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'MS Sans Serif'
+        Font.Style = [fsBold]
         ShowHint = True
-        Text = ' 1 %'
-        Value = 1.000000000000000000
+        Text = ' 100 %'
+        Value = 100.000000000000000000
         Scale = 1.000000000000000000
         Units = '%'
         NumberFormat = '%.0f'
@@ -696,17 +687,17 @@ object MainFrm: TMainFrm
         OnClick = ckEnablePMT0Click
       end
       object udPMTVolts0: TUpDown
-        Left = 158
-        Top = 0
-        Width = 17
-        Height = 23
+        Left = 173
+        Top = 2
+        Width = 30
+        Height = 24
         Min = -30000
         Max = 30000
         TabOrder = 3
         OnChangingEx = udPMTVolts0ChangingEx
       end
       object gpPMTColor0: TGroupBox
-        Left = 181
+        Left = 210
         Top = 3
         Width = 20
         Height = 20
@@ -719,23 +710,23 @@ object MainFrm: TMainFrm
     end
     object PanelPMT1: TPanel
       Left = 3
-      Top = 59
+      Top = 67
       Width = 238
-      Height = 28
+      Height = 30
       BevelOuter = bvNone
       TabOrder = 1
       object cbPMTGain1: TComboBox
         Left = 53
-        Top = 0
+        Top = 2
         Width = 49
-        Height = 23
+        Height = 24
         Hint = 'PMT amplifier gain'
         Style = csDropDownList
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Arial Narrow'
-        Font.Style = []
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         ItemIndex = 0
         ParentFont = False
         ParentShowHint = False
@@ -749,11 +740,16 @@ object MainFrm: TMainFrm
       end
       object edPMTVolts1: TValidatedEdit
         Left = 108
-        Top = 0
-        Width = 51
-        Height = 21
+        Top = 2
+        Width = 65
+        Height = 24
         Hint = 'PMT voltage (% of maximum)'
         OnKeyPress = edPMTVolts0KeyPress
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         ShowHint = True
         Text = ' 1 %'
         Value = 1.000000000000000000
@@ -779,15 +775,15 @@ object MainFrm: TMainFrm
         OnClick = ckEnablePMT0Click
       end
       object udPMTVolts1: TUpDown
-        Left = 158
-        Top = 0
-        Width = 17
-        Height = 23
+        Left = 173
+        Top = 2
+        Width = 30
+        Height = 24
         TabOrder = 3
         OnChangingEx = udPMTVolts1ChangingEx
       end
       object gpPMTColor1: TGroupBox
-        Left = 181
+        Left = 210
         Top = 3
         Width = 20
         Height = 20
@@ -800,23 +796,23 @@ object MainFrm: TMainFrm
     end
     object PanelPMT2: TPanel
       Left = 3
-      Top = 86
+      Top = 99
       Width = 238
-      Height = 28
+      Height = 30
       BevelOuter = bvNone
       TabOrder = 2
       object cbPMTGain2: TComboBox
         Left = 53
-        Top = 0
+        Top = 2
         Width = 49
-        Height = 23
+        Height = 24
         Hint = 'PMT amplifier gain'
         Style = csDropDownList
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Arial Narrow'
-        Font.Style = []
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         ItemIndex = 0
         ParentFont = False
         ParentShowHint = False
@@ -830,11 +826,16 @@ object MainFrm: TMainFrm
       end
       object edPMTVolts2: TValidatedEdit
         Left = 108
-        Top = 0
-        Width = 51
-        Height = 21
+        Top = 2
+        Width = 65
+        Height = 24
         Hint = 'PMT voltage (% of maximum)'
         OnKeyPress = edPMTVolts0KeyPress
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         ShowHint = True
         Text = ' 1 %'
         Value = 1.000000000000000000
@@ -860,15 +861,15 @@ object MainFrm: TMainFrm
         OnClick = ckEnablePMT0Click
       end
       object udPMTVolts2: TUpDown
-        Left = 158
-        Top = 0
-        Width = 17
-        Height = 23
+        Left = 173
+        Top = 2
+        Width = 30
+        Height = 24
         TabOrder = 3
         OnChangingEx = udPMTVolts2ChangingEx
       end
       object gpPMTColor2: TGroupBox
-        Left = 181
+        Left = 210
         Top = 3
         Width = 20
         Height = 20
@@ -881,23 +882,23 @@ object MainFrm: TMainFrm
     end
     object PanelPMT3: TPanel
       Left = 3
-      Top = 113
+      Top = 130
       Width = 238
-      Height = 28
+      Height = 30
       BevelOuter = bvNone
       TabOrder = 3
       object cbPMTGain3: TComboBox
         Left = 53
-        Top = 0
+        Top = 2
         Width = 49
-        Height = 23
+        Height = 24
         Hint = 'PMT amplifier gain'
         Style = csDropDownList
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Arial Narrow'
-        Font.Style = []
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         ItemIndex = 0
         ParentFont = False
         ParentShowHint = False
@@ -911,12 +912,17 @@ object MainFrm: TMainFrm
       end
       object edPMTVolts3: TValidatedEdit
         Left = 108
-        Top = 0
-        Width = 51
-        Height = 21
+        Top = 2
+        Width = 65
+        Height = 24
         Hint = 'PMT voltage (% of maximum)'
         ParentCustomHint = False
         OnKeyPress = edPMTVolts0KeyPress
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Arial'
+        Font.Style = [fsBold]
         Text = ' 1 %'
         Value = 1.000000000000000000
         Scale = 1.000000000000000000
@@ -941,16 +947,16 @@ object MainFrm: TMainFrm
         OnClick = ckEnablePMT0Click
       end
       object udPMTVolts3: TUpDown
-        Left = 158
-        Top = 0
-        Width = 17
-        Height = 23
+        Left = 173
+        Top = 2
+        Width = 30
+        Height = 24
         TabOrder = 3
         OnChangingEx = udPMTVolts3ChangingEx
       end
       object gpPMTColor3: TGroupBox
-        Left = 181
-        Top = 3
+        Left = 210
+        Top = 5
         Width = 20
         Height = 20
         Color = clGreen
@@ -963,7 +969,7 @@ object MainFrm: TMainFrm
   end
   object LaserGrp: TGroupBox
     Left = 8
-    Top = 560
+    Top = 566
     Width = 297
     Height = 56
     Caption = ' Laser '
@@ -1337,7 +1343,7 @@ object MainFrm: TMainFrm
     TabOrder = 7
     object meStatus: TMemo
       Left = 8
-      Top = 5
+      Top = 8
       Width = 280
       Height = 70
       Color = clGray
