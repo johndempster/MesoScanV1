@@ -529,9 +529,9 @@ object MainFrm: TMainFrm
   end
   object ZStageGrp: TGroupBox
     Left = 8
-    Top = 327
+    Top = 330
     Width = 297
-    Height = 54
+    Height = 69
     Caption = 'Z Position '
     Color = clGray
     ParentBackground = False
@@ -579,7 +579,7 @@ object MainFrm: TMainFrm
     end
     object bGotoZPosition: TButton
       Left = 133
-      Top = 16
+      Top = 13
       Width = 57
       Height = 22
       Hint = 'Move stage to specified Z axis position'
@@ -595,10 +595,31 @@ object MainFrm: TMainFrm
       TabOrder = 2
       OnClick = bGotoZPositionClick
     end
+    object tbZPosition: TTrackBar
+      Left = 40
+      Top = 41
+      Width = 254
+      Height = 25
+      Max = 10000
+      Min = -1000
+      Position = 5820
+      TabOrder = 3
+      ThumbLength = 14
+      TickStyle = tsManual
+      OnChange = tbZPositionChange
+    end
+    object ckZStageFollowTrackBar: TCheckBox
+      Left = 12
+      Top = 44
+      Width = 26
+      Height = 17
+      Hint = 'Control Z Stage position with track bar'
+      TabOrder = 4
+    end
   end
   object PMTGrp: TGroupBox
     Left = 8
-    Top = 385
+    Top = 405
     Width = 297
     Height = 180
     Caption = ' PMT Channels  '

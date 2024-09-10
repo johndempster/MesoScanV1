@@ -61,6 +61,7 @@ unit MainUnit;
 //                 and Y position exponentially to zero. To fix audible galvo 'click' at start/end of scan.
 //                 Display pixel readout cursor readout now updated when page changed.
 // V1.7.6 05.08.24 PMT electron gain control now remains active during scan
+// V1.7.7 10.08.24 Track bar added allowing mouse control of Z position
 
 interface
 
@@ -218,6 +219,8 @@ type
     gpPMTColor1: TGroupBox;
     gpPMTColor2: TGroupBox;
     gpPMTColor3: TGroupBox;
+    tbZPosition: TTrackBar;
+    ckZStageFollowTrackBar: TCheckBox;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
@@ -277,6 +280,7 @@ type
     procedure bCursorsClick(Sender: TObject);
     procedure ImagePageChange(Sender: TObject);
     procedure gpPMTColor0Click(Sender: TObject);
+    procedure tbZPositionChange(Sender: TObject);
   private
     { Private declarations }
         BitMap : Array[0..MaxPMT] of TBitMap ;  // Image internal bitmaps
@@ -390,6 +394,7 @@ type
     ADCPointer : Integer ;
     EmptyFlag : Integer ;
     UpdateDisplay : Boolean ;
+    NewZStageTrackbarPosition : Boolean ;  // Z stage track bar changed
 
     //ZoomFactors : Array[0..MaxZoomFactors-1] of Double ;
 
@@ -622,6 +627,9 @@ begin
      Image[2] := Image0 ;
      Image[3] := Image0 ;}
 
+     NewZStageTrackbarPosition := False ;
+     
+
      end;
 
 
@@ -634,13 +642,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.6 ';
+     Caption := 'MesoScan V1.7.7 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 05/08/24';
+    Caption := Caption + ' 10/09/24';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -2509,9 +2517,25 @@ begin
 
     GetImageFromPMT ;
 
-    ZStage.UpdateZPosition ;
-    edZTop.Text := format('%.2f um',[ZStage.ZPosition]) ;
-
+    if not ckZStageFollowTrackBar.Checked then
+       begin
+       // Use manual dial to control Z stage
+       ZStage.UpdateZPosition ;
+       edZTop.Text := format('%.2f um',[ZStage.ZPosition]) ;
+       tbZPosition.Position := Round(ZStage.ZPosition) ;
+       end
+    else
+       begin
+       // Use track bar to control Z stage position
+       if NewZStageTrackbarPosition then
+          begin
+          ZStage.MoveTo( ZStage.XPosition, ZStage.YPosition, tbZPosition.Position ) ;
+          NewZStageTrackbarPosition := False ;
+          end;
+       ZStage.UpdateZPosition ;
+       edZTop.Text := format('%.2f um',[ZStage.ZPosition]) ;
+       end;
+       
     end;
 
 
@@ -3176,6 +3200,15 @@ begin
      end;
 
 
+procedure TMainFrm.tbZPositionChange(Sender: TObject);
+// ------------------------------------
+// Change to Z stage track bar position
+// ------------------------------------
+begin
+    NewZStageTrackbarPosition := True ;
+end;
+
+
 procedure TMainFrm.SaveRawImage(
           FileName : String ;    // File to save to
           iSection : Integer    // Image Section number
@@ -3564,6 +3597,8 @@ begin
 
     edGotoZPosition.HiLimit := ZStage.ZPositionMax ;
     edGotoZPosition.LoLimit := ZStage.ZPositionMin ;
+    tbZPosition.Max := Round(ZStage.ZPositionMax) ;
+    tbZPosition.Min := Round(ZStage.ZPositionMin) ;    
 
     SaveDirectory := GetElementText( ProtNode, 'SAVEDIRECTORY', SaveDirectory ) ;
     ImageJPath := GetElementText( ProtNode, 'IMAGEJPATH', ImageJPath ) ;
