@@ -62,6 +62,7 @@ unit MainUnit;
 //                 Display pixel readout cursor readout now updated when page changed.
 // V1.7.6 05.08.24 PMT electron gain control now remains active during scan
 // V1.7.7 10.08.24 Track bar added allowing mouse control of Z position
+// V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
 
 interface
 
@@ -220,7 +221,8 @@ type
     gpPMTColor2: TGroupBox;
     gpPMTColor3: TGroupBox;
     tbZPosition: TTrackBar;
-    ckZStageFollowTrackBar: TCheckBox;
+    rbZDialCoarse: TRadioButton;
+    rbZDialFine: TRadioButton;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
@@ -642,13 +644,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.7 ';
+     Caption := 'MesoScan V1.7.8 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 10/09/24';
+    Caption := Caption + ' 29/01/25';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -2486,6 +2488,8 @@ procedure TMainFrm.TimerTimer(Sender: TObject);
 // -------------------------
 // Regular timed operations
 // --------------------------
+var
+    ZStep : Double ;
 begin
 
     if ScanningInProgress then EnablePMTControls( False )
@@ -2517,25 +2521,30 @@ begin
 
     GetImageFromPMT ;
 
-    if not ckZStageFollowTrackBar.Checked then
+    //
+    // Z stage rotary control dial
+    //
+    if ZStage.ZDialAvailable then
        begin
-       // Use manual dial to control Z stage
-       ZStage.UpdateZPosition ;
-       edZTop.Text := format('%.2f um',[ZStage.ZPosition]) ;
-       tbZPosition.Position := Round(ZStage.ZPosition) ;
-       end
-    else
-       begin
-       // Use track bar to control Z stage position
-       if NewZStageTrackbarPosition then
+       ZStep := ZStage.GetZDialRotation ;
+       if ZStep <> 0.0  then
           begin
-          ZStage.MoveTo( ZStage.XPosition, ZStage.YPosition, tbZPosition.Position ) ;
-          NewZStageTrackbarPosition := False ;
+          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStep ) ;
           end;
-       ZStage.UpdateZPosition ;
-       edZTop.Text := format('%.2f um',[ZStage.ZPosition]) ;
+       tbZPosition.Position := Round(ZStage.ZPosition) ;
+       rbZDialCoarse.Checked := ZStage.ZDialCoarseStep ;
+       rbZDialFine.Checked := not ZStage.ZDialCoarseStep ;
+       end
+     else
+       begin
+       // Start monitor of Z dial encoder pulses
+       ZStage.StartZDialADC ;
        end;
-       
+
+     // Report stage position
+     ZStage.UpdateZPosition ;
+     edZTop.Text := format('%.1f um',[ZStage.ZPosition]) ;
+
     end;
 
 
@@ -3426,6 +3435,11 @@ begin
     AddElementDouble( iNode, 'ZPOSITIONMAX', ZStage.ZPositionMax ) ;
     AddElementDouble( iNode, 'ZPOSITIONMIN', ZStage.ZPositionMin ) ;
     AddElementInt( iNode, 'STAGEPROTECTIONTTLTRIGGER', ZStage.StageProtectionTTLTrigger ) ;
+    AddElementInt( iNode, 'ZSTAGEZDIALADCINPUTS', ZStage.ZDialADCInputs ) ;
+    AddElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPCOARSE', ZStage.ZDialMicronsPerStepCoarse ) ;
+    AddElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPMEDIUM', ZStage.ZDialMicronsPerStepMedium ) ;
+    AddElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPFINE', ZStage.ZDialMicronsPerStepFine ) ;
+
 
     AddElementText( ProtNode, 'SAVEDIRECTORY', SaveDirectory ) ;
 
@@ -3592,13 +3606,18 @@ begin
       ZStage.ZPositionMax := GetElementDouble( iNode, 'ZPOSITIONMAX', ZStage.ZPositionMax ) ;
       ZStage.ZPositionMin := GetElementDouble( iNode, 'ZPOSITIONMIN', ZStage.ZPositionMin ) ;
       ZStage.StageProtectionTTLTrigger := GetElementInt( iNode, 'STAGEPROTECTIONTTLTRIGGER', ZStage.StageProtectionTTLTrigger ) ;
+      ZStage.ZDialADCInputs := GetElementInt( iNode, 'ZSTAGEZDIALADCINPUTS', ZStage.ZDialADCInputs ) ;
+      ZStage.ZDialMicronsPerStepCoarse := GetElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPCOARSE', ZStage.ZDialMicronsPerStepCoarse ) ;
+      ZStage.ZDialMicronsPerStepMedium := GetElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPMEDIUM', ZStage.ZDialMicronsPerStepMedium ) ;
+      ZStage.ZDialMicronsPerStepFine := GetElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPFINE', ZStage.ZDialMicronsPerStepFine ) ;
+
       Inc(NodeIndex) ;
       end ;
 
     edGotoZPosition.HiLimit := ZStage.ZPositionMax ;
     edGotoZPosition.LoLimit := ZStage.ZPositionMin ;
     tbZPosition.Max := Round(ZStage.ZPositionMax) ;
-    tbZPosition.Min := Round(ZStage.ZPositionMin) ;    
+    tbZPosition.Min := Round(ZStage.ZPositionMin) ;
 
     SaveDirectory := GetElementText( ProtNode, 'SAVEDIRECTORY', SaveDirectory ) ;
     ImageJPath := GetElementText( ProtNode, 'IMAGEJPATH', ImageJPath ) ;

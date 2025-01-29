@@ -11,10 +11,8 @@ object SettingsFrm: TSettingsFrm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   Position = poMainFormCenter
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
   object bOK: TButton
     Left = 8
@@ -53,7 +51,7 @@ object SettingsFrm: TSettingsFrm
     Top = 6
     Width = 761
     Height = 395
-    ActivePage = ScanTab
+    ActivePage = TabSheet1
     TabOrder = 2
     object ScanTab: TTabSheet
       Caption = 'Scanning'
@@ -1121,7 +1119,80 @@ object SettingsFrm: TSettingsFrm
           Text = ' 0 '
           Scale = 1.000000000000000000
           NumberFormat = '%.0f'
+          LoLimit = -1.000000015047466E30
           HiLimit = 1.000000000000000000
+        end
+      end
+      object gpZPositionDial: TGroupBox
+        Left = 244
+        Top = 10
+        Width = 233
+        Height = 191
+        Caption = 'Z Position Dial '
+        TabOrder = 2
+        object Label38: TLabel
+          Left = 31
+          Top = 44
+          Width = 110
+          Height = 13
+          Alignment = taRightJustify
+          Caption = 'Microns / step (coarse)'
+          WordWrap = True
+        end
+        object Label39: TLabel
+          Left = 20
+          Top = 19
+          Width = 94
+          Height = 13
+          Alignment = taRightJustify
+          Caption = 'Encoder A/D Inputs'
+        end
+        object Label41: TLabel
+          Left = 45
+          Top = 71
+          Width = 96
+          Height = 13
+          Alignment = taRightJustify
+          Caption = 'Microns / step (fine)'
+          WordWrap = True
+        end
+        object edZDialMicronsPerStepCoarse: TValidatedEdit
+          Left = 160
+          Top = 43
+          Width = 57
+          Height = 21
+          Hint = 'Microns per step of Z dial rotational encoder'
+          ShowHint = True
+          Text = ' 10.0 um'
+          Value = 10.000000000000000000
+          Scale = 1.000000000000000000
+          Units = 'um'
+          NumberFormat = '%.1f'
+          LoLimit = 10.000000000000000000
+          HiLimit = 100.000000000000000000
+        end
+        object cbZDialADCInputs: TComboBox
+          Left = 120
+          Top = 16
+          Width = 97
+          Height = 21
+          Style = csDropDownList
+          TabOrder = 1
+        end
+        object edZDialMicronsPerStepFine: TValidatedEdit
+          Left = 160
+          Top = 70
+          Width = 57
+          Height = 21
+          Hint = 'Microns per step of Z dial rotational encoder'
+          ShowHint = True
+          Text = ' 0.1 um'
+          Value = 0.100000001490116100
+          Scale = 1.000000000000000000
+          Units = 'um'
+          NumberFormat = '%.1f'
+          LoLimit = 0.100000001490116100
+          HiLimit = 2.000000000000000000
         end
       end
     end

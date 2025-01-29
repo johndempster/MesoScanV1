@@ -301,6 +301,22 @@ type
           TimingDevice : SmallInt            // Device supply ADC/DAC timing pulses
           ) : Boolean ;                      { Returns TRUE indicating A/D started }
 
+function ADCToMemory(
+          Device : SmallInt ;
+          nChannels : Integer ;                  // Return number of A/D channels
+          nSamples : Integer ;                   // Number of A/D samples ( per channel) (IN)
+          SamplingInterval : Double ;            // Sampling interval
+          CircularBuffer : Boolean               // Repeated sampling into buffer (IN) }
+          ) : Boolean ;                          // Returns TRUE indicating A/D started }
+
+
+function GetNewADCSamples(
+          Device : Integer ;                    // Device in use
+          ADCBuf : PSmallIntArray ;      // A/D data buffer to hold received data
+          var NumSamples : Integer ;             // No. of samples received
+          NumChannels : Integer ;               // No. of A/D channels
+          MaxPoints : Integer                  // Max. no. of A/D time points
+          ) : Boolean ;
 
     procedure CheckSamplingInterval(
               DeviceNum : Integer ;
@@ -1485,6 +1501,141 @@ begin
      Result := ADCActive[Device] ;
 
      end ;
+
+
+function TLabIO.ADCToMemory(
+          Device : SmallInt ;
+          nChannels : Integer ;                  // Return number of A/D channels
+          nSamples : Integer ;                   // Number of A/D samples ( per channel) (IN)
+          SamplingInterval : Double ;            // Sampling interval
+          CircularBuffer : Boolean               // Repeated sampling into buffer (IN) }
+          ) : Boolean ;                          // Returns TRUE indicating A/D started }
+{ ----------------------------
+  Start A/D converter sampling
+  ----------------------------}
+var
+   ChannelList,ChannelName : ANSIString ;
+   ClockSource : ANSIString ;
+   ch : Integer ;
+   SampleMode : Integer ;
+   SamplingRate,MaxSamplingRate : Double ;
+begin
+
+     Result := False ;
+     if (Device < 1) or (Device > NumDevices) then Exit ;
+     if NumADCs[Device] <= 0 then Exit ;
+
+     // Stop any running A/D task
+     StopADC(Device) ;
+
+     DisableFPUExceptions ;
+
+     // Create A/D task
+     CheckError( DAQmxCreateTask( '', ADCTask[Device] ) ) ;
+
+     // Create channe; list
+     ChannelList := '' ;
+     for ch := 0 to nChannels-1 do
+       begin
+       ChannelList := ChannelList + DeviceName[Device] + format('/AI%d,',[ch]);
+       end;
+     ChannelList := LeftStr(ChannelList,Length(ChannelList)-1);
+
+     // Create A/D input task
+     // (Note A/D input voltage range is set to largest (usually +/- 10V)
+     CheckError( DAQmxCreateAIVoltageChan( ADCTask[Device],
+                                           PANSIChar(ChannelList),
+                                           nil ,
+                                           ADCInputModeCode(Device,ADCInputMode),
+                                           -ADCVoltageRanges[Device][0],
+                                           ADCVoltageRanges[Device][0],
+                                           DAQmx_Val_Volts,
+                                           nil));
+
+     // Select continuous sampling if circular buffer selected
+     if CircularBuffer then SampleMode := DAQmx_Val_ContSamps
+                       else SampleMode := DAQmx_Val_FiniteSamps ;
+
+     // Set timing
+     ClockSource := 'onboardclock' ;// '/' + DeviceName[TimingDevice] + '/ao/sampleclock' ;
+     // Set sampling rate
+     CheckError( DAQmxGetSampClkMaxRate( ADCTask[Device],MaxSamplingRate )) ;
+     SamplingRate :=  Min(1.0/SamplingInterval, MaxSamplingRate) ;
+
+     CheckError( DAQmxCfgSampClkTiming( ADCTask[Device],
+                                        PANSIChar(ClockSource),
+                                        SamplingRate,
+                                        DAQmx_Val_Rising,
+                                        DAQmx_Val_ContSamps,
+                                        nSamples));
+
+
+     // Configure buffer
+     CheckError( DAQmxCfgInputBuffer ( ADCTask[Device], nChannels*nSamples) ) ;
+     // Enable immediate return with any available data within buffer
+     CheckError( DAQmxSetReadReadAllAvailSamp( ADCTask[Device], True )) ;
+
+     // Set triggering
+     // --------------
+
+     // Request immediate start
+     CheckError(DAQmxDisableStartTrig(ADCTask[Device]));
+
+     // Start A/D task
+     CheckError( DAQmxStartTask(ADCTask[Device])) ;
+
+     // Restore FPU exceptions
+     EnableFPUExceptions ;
+
+     ADCActive[Device] := True ;
+     Result := ADCActive[Device] ;
+
+     end ;
+
+
+
+function TLabIO.GetNewADCSamples(
+          Device : Integer ;                    // Device in use
+          ADCBuf : PSmallIntArray ;      // A/D data buffer to hold received data
+          var NumSamples : Integer ;             // No. of samples received
+          NumChannels : Integer ;               // No. of A/D channels
+          MaxPoints : Integer                  // Max. no. of A/D time points
+          ) : Boolean ;
+// -------------------------------------------------------------
+// Get latest A/D samples acquired and transfer to ADCBuf
+// -------------------------------------------------------------
+var
+    i,iFrom,iTo : Integer ;
+    NumSamplesRead,NumSamplesWritten,NumPointsToWrite,np,npMax : Integer ;
+    DBuf : PDoubleArray ;
+    VScale : Double ;
+begin
+
+    // Create temporary buffer
+    DBuf := AllocMem( NumChannels*MaxPoints*SIzeOf(Double));
+
+    // Read data from A/D converter
+    DAQmxReadAnalogF64( ADCTask[Device],
+                        -1,
+                        0.0,
+                        DAQmx_Val_GroupByScanNumber,
+                        DBuf,
+                        NumChannels*MaxPoints,
+                        NumSamplesRead,
+                        Nil) ;
+
+    // Scale from double V to 2 byte integer
+
+    VScale := ADCMaxValue[Device] / ADCVoltageRanges[Device][0] ;
+    for i := 0 to NumSamplesRead*NumChannels-1 do
+        begin
+          ADCBuf[i] := Round( VScale * DBuf[i] ) ;
+        end;
+    NumSamples := NumSamplesRead ;
+
+    FreeMem(DBuf) ;
+
+    end ;
 
 
 function TLabIO.NIDAQMX_StopADC(

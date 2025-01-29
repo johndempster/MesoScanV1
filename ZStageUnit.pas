@@ -22,6 +22,7 @@ unit ZStageUnit;
 // 01.11.17 OptiScan II now operated in standard (COMP 0) mode
 // 14.09.20 Prior stage protection interrupt now triggered by a TTL high-low transition
 //          produced by Mesoscope V3 stage protection circuit when microswitches closed
+// V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
 
 interface
 
@@ -88,6 +89,15 @@ type
     ZStepTime : Double ;     // Time to perform Z step (s)
     StageProtectionTTLTrigger : Integer ; // Stage protection trigger
                                           // 1= on TTL high, 0 = on TTL low
+
+    ZDialAvailable : Boolean ;            // TRUE = Z dial (rotary encoder) available for use
+    ZDialADCInputs : Integer ;            // LABIO Resource number for encoder A/D inouts
+    ZDialMicronsPerStepCoarse : Double ;  // Microns movement per step of rotational encoder (coarse)
+    ZDialMicronsPerStepMedium : Double ;  // Microns movement per step of rotational encoder (medium)
+    ZDialMicronsPerStepFine : Double ;    // Microns movement per step of rotational encoder (fine)
+    ZDialCoarseStep : Boolean ;           // TRUE = Z dial on coarse step setting
+    A_State : Boolean ;                   // Z dial encoder current A state
+
     procedure Open ;
     procedure Close ;
     procedure UpdateZPosition ;
@@ -97,6 +107,10 @@ type
                       ) ;
     procedure GetZStageTypes( List : TStrings ) ;
     procedure GetControlPorts( List : TStrings ) ;
+    procedure GetZDialADCInputs( List : TStrings ) ;
+    procedure StartZDialADC ;
+    procedure StopZDialADC ;
+    function GetZDialRotation : double ;
 
   published
     Property ControlPort : DWORD read FControlPort write SetControlPort ;
@@ -130,6 +144,10 @@ const
     YMaxStep = 10000.0 ;
     ZMaxStep = 10000.0 ;
 
+    ZDialNumADCChannels = 3 ;
+    ZDialMaxADCPoints = 10000 ;
+
+
 procedure TZStage.DataModuleCreate(Sender: TObject);
 // ---------------------------------------
 // Initialisations when module is created
@@ -154,6 +172,16 @@ begin
     RequestedZPos := 0.0 ;
     StageProtectionTTLTrigger := 0 ; // Default = trigger on low (for V3+ protection stages)
 
+    ZDialADCInputs := MaxResources ;
+    ZDialMicronsPerStepCoarse := 100.0 ;        // Microns movement per step of rotational encoder (coarse)
+    ZDialMicronsPerStepMedium := 10.0 ;         // Microns movement per step of rotational encoder (medium)
+    ZDialMicronsPerStepFine := 0.2 ;            // Microns movement per step of rotational encoder (fine)
+    ZDialAvailable := False ;
+
+    // Start monitoring of Z dial encoder
+    StartZDialADC ;
+
+
     MoveToRequest := False ;
     StageInitRequired := False ;
     end;
@@ -164,6 +192,10 @@ procedure TZStage.DataModuleDestroy(Sender: TObject);
 // --------------------------------
 begin
     if ComPortOpen then CloseComPort ;
+
+    // Stop A/D monitoring of Z dial encoder pulses
+    StopZDialADC ;
+
 end;
 
 procedure TZStage.GetZStageTypes( List : TStrings ) ;
@@ -204,6 +236,15 @@ begin
           end ;
         end;
      end;
+
+
+procedure TZStage.GetZDialADCInputs( List : TStrings ) ;
+// -------------------------------------
+// Get list of available A/D input ports
+// --------------------------------------
+begin
+     LabIO.GetAIPorts( List ) ;
+end;
 
 
 procedure TZStage.Open ;
@@ -717,5 +758,100 @@ begin
       t := TimeGetTime ;
     until t >= TEndWait ;
 end;
+
+procedure TZStage.StartZDialADC ;
+// ------------------------------------------
+// Start A/D monitor of Z dial encoder pulses
+// ------------------------------------------
+begin
+
+      if ZDialADCInputs >= MaxResources then Exit ;
+
+      // ACcquire 3 channels (AI0-AI2), into 10000 sample circular buffer at 1ms intervals
+      // AI0=Encoder A, AI1=Encoder B, AI2=Coarse/fine switch
+
+      LabIO.ADCToMemory( LabIO.Resource[ZDialADCInputs].Device,
+                         ZDialNumADCChannels,
+                         ZDialMaxADCPoints,
+                         1E-3, True) ;
+
+      ZDialAvailable := True ;
+      A_State := False ;
+
+end;
+
+
+procedure TZStage.StopZDialADC ;
+// ------------------------------------------
+// Stop A/D monitor of Z dial encoder pulses
+// ------------------------------------------
+begin
+     ZDialAvailable := False ;
+     if ZDialADCInputs >= MaxResources then Exit ;
+     LabIO.StopADC(LabIO.Resource[ZDialADCInputs].Device) ;
+end;
+
+
+function TZStage.GetZDialRotation : double ;
+// ----------------------------------------------------------------------
+// Return microns change in Z stage position requested by Z dial rotation
+// ------------------------------------------------------------------------
+const
+    VThreshold = 2.5 ;
+var
+    ADCBuf : PSmallIntArray ;
+    NumSamples : Integer ;
+    i, PulseCount,Device : Integer;
+    VScale,V_A,V_B,V_Coarse : Double ;
+    A,B : Boolean ;
+    s : string ;
+begin
+
+     Result := 0.0 ;
+     if not ZDialAvailable then Exit ;
+     Device := LabIO.Resource[ZDialADCInputs].Device ;
+
+
+     ADCBuf := AllocMem( ZDialNumADCChannels*ZDialMaxADCPoints*SizeOf(SmallInt)) ;
+
+     LabIO.GetNewADCSamples( Device,
+                             ADCBuf,
+                             NumSamples,
+                             ZDialNumADCChannels,
+                             ZDialMaxADCPoints ) ;
+
+     VScale := LabIO.ADCVoltageRanges[Device][0] / LabIO.ADCMaxValue[Device] ;
+     PulseCount := 0 ;
+     for i := 0 to NumSamples-1 do
+         begin
+         // Encoder A channel
+         V_A := VScale*ADCBuf[i*ZDialNumADCChannels] ;
+         if V_A > VThreshold then A := True
+                             else A := False ;
+         // Encoder B channel
+         V_B := VScale*ADCBuf[i*ZDialNumADCChannels+1] ;
+         if V_B > VThreshold then B := True
+                             else B := False ;
+
+         // Coarse/fine movement switch
+         V_Coarse := VScale*ADCBuf[i*ZDialNumADCChannels+2] ;
+         if V_Coarse > VThreshold then ZDialCoarseStep := True
+                                  else ZDialCoarseStep := False ;
+
+         if (A_state = False) and (A = True) then
+            begin
+            if B = True then Dec(PulseCount)
+                        else Inc(PulseCount) ;
+            end;
+         A_state := A ;
+         end;
+
+     Result := PulseCount ;
+     if ZDialCoarseStep then Result := Result*ZDialMicronsPerStepCoarse
+                        else Result := Result*ZDialMicronsPerStepFine ;
+
+     FreeMem(ADCBuf) ;
+end;
+
 
 end.

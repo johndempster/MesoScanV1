@@ -529,9 +529,9 @@ object MainFrm: TMainFrm
   end
   object ZStageGrp: TGroupBox
     Left = 8
-    Top = 330
+    Top = 328
     Width = 297
-    Height = 69
+    Height = 93
     Caption = 'Z Position '
     Color = clGray
     ParentBackground = False
@@ -541,14 +541,14 @@ object MainFrm: TMainFrm
       Left = 12
       Top = 16
       Width = 115
-      Height = 24
+      Height = 28
       Hint = 'Stage position on Z axis'
       Color = clYellow
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -13
+      Font.Height = -16
       Font.Name = 'MS Sans Serif'
-      Font.Style = []
+      Font.Style = [fsBold]
       ShowHint = True
       Text = ' 0.00 um'
       Scale = 1.000000000000000000
@@ -579,9 +579,9 @@ object MainFrm: TMainFrm
     end
     object bGotoZPosition: TButton
       Left = 133
-      Top = 13
+      Top = 16
       Width = 57
-      Height = 22
+      Height = 28
       Hint = 'Move stage to specified Z axis position'
       Caption = 'Go To'
       Font.Charset = ANSI_CHARSET
@@ -596,9 +596,9 @@ object MainFrm: TMainFrm
       OnClick = bGotoZPositionClick
     end
     object tbZPosition: TTrackBar
-      Left = 40
-      Top = 41
-      Width = 254
+      Left = 12
+      Top = 48
+      Width = 282
       Height = 25
       Max = 10000
       Min = -1000
@@ -608,19 +608,41 @@ object MainFrm: TMainFrm
       TickStyle = tsManual
       OnChange = tbZPositionChange
     end
-    object ckZStageFollowTrackBar: TCheckBox
-      Left = 12
-      Top = 44
-      Width = 26
+    object rbZDialCoarse: TRadioButton
+      Left = 75
+      Top = 65
+      Width = 73
       Height = 17
-      Hint = 'Control Z Stage position with track bar'
+      Caption = 'Coarse'
+      Checked = True
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = [fsBold]
+      ParentFont = False
       TabOrder = 4
+      TabStop = True
+    end
+    object rbZDialFine: TRadioButton
+      Left = 16
+      Top = 65
+      Width = 60
+      Height = 17
+      Caption = 'Fine'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 5
     end
   end
   object PMTGrp: TGroupBox
     Left = 8
-    Top = 405
-    Width = 297
+    Top = 430
+    Width = 295
     Height = 180
     Caption = ' PMT Channels  '
     Color = clGray
@@ -990,7 +1012,7 @@ object MainFrm: TMainFrm
   end
   object LaserGrp: TGroupBox
     Left = 8
-    Top = 566
+    Top = 616
     Width = 297
     Height = 56
     Caption = ' Laser '
@@ -1062,9 +1084,9 @@ object MainFrm: TMainFrm
   end
   object DisplayGrp: TGroupBox
     Left = 8
-    Top = 622
+    Top = 678
     Width = 297
-    Height = 406
+    Height = 371
     Caption = ' Display '
     Color = clGray
     ParentBackground = False
@@ -1073,7 +1095,7 @@ object MainFrm: TMainFrm
     object Splitter1: TSplitter
       Left = 2
       Top = 15
-      Height = 389
+      Height = 354
       ExplicitLeft = 3
       ExplicitTop = 17
       ExplicitHeight = 341
@@ -1139,8 +1161,8 @@ object MainFrm: TMainFrm
     object gpYAxis: TGroupBox
       Left = 11
       Top = 220
-      Width = 86
-      Height = 61
+      Width = 130
+      Height = 45
       Caption = ' Y Axis '
       Font.Charset = ANSI_CHARSET
       Font.Color = clRed
@@ -1151,7 +1173,7 @@ object MainFrm: TMainFrm
       TabOrder = 1
       object rbYAxisLinear: TRadioButton
         Left = 8
-        Top = 15
+        Top = 16
         Width = 64
         Height = 20
         Caption = 'Linear'
@@ -1166,8 +1188,8 @@ object MainFrm: TMainFrm
         TabOrder = 0
       end
       object rbYAxisLog: TRadioButton
-        Left = 8
-        Top = 34
+        Left = 78
+        Top = 16
         Width = 64
         Height = 20
         Caption = 'Log'
@@ -1183,10 +1205,10 @@ object MainFrm: TMainFrm
       end
     end
     object gpHistogramType: TGroupBox
-      Left = 103
-      Top = 221
-      Width = 183
-      Height = 60
+      Left = 147
+      Top = 222
+      Width = 138
+      Height = 44
       Caption = ' Histogram'
       Font.Charset = ANSI_CHARSET
       Font.Color = clRed
@@ -1196,9 +1218,9 @@ object MainFrm: TMainFrm
       ParentFont = False
       TabOrder = 2
       object rbLineHistogram: TRadioButton
-        Left = 8
-        Top = 15
-        Width = 64
+        Left = 3
+        Top = 16
+        Width = 56
         Height = 25
         Caption = 'Line'
         Checked = True
@@ -1214,10 +1236,10 @@ object MainFrm: TMainFrm
         TabStop = True
       end
       object rbImageHistogram: TRadioButton
-        Left = 8
-        Top = 37
+        Left = 60
+        Top = 16
         Width = 64
-        Height = 20
+        Height = 25
         Caption = 'Image'
         Font.Charset = ANSI_CHARSET
         Font.Color = clRed
@@ -1231,14 +1253,14 @@ object MainFrm: TMainFrm
     end
     object gpContrast: TGroupBox
       Left = 11
-      Top = 287
+      Top = 269
       Width = 275
-      Height = 116
+      Height = 98
       Caption = ' Contrast '
       TabOrder = 3
       object bFullScale: TButton
         Left = 8
-        Top = 15
+        Top = 16
         Width = 86
         Height = 20
         Hint = 'Set display intensity range to cover full camera range'
@@ -1254,7 +1276,7 @@ object MainFrm: TMainFrm
       end
       object edDisplayIntensityRange: TRangeEdit
         Left = 105
-        Top = 61
+        Top = 42
         Width = 152
         Height = 20
         Hint = 'Range of intensities displayed within image'
@@ -1274,9 +1296,9 @@ object MainFrm: TMainFrm
         NumberFormat = '%.0f - %.0f'
       end
       object bMaxContrast: TButton
-        Left = 8
-        Top = 38
-        Width = 50
+        Left = 100
+        Top = 16
+        Width = 61
         Height = 20
         Hint = 'Set display range to min. - max.  intensities within image'
         Caption = 'Best'
@@ -1290,8 +1312,8 @@ object MainFrm: TMainFrm
         OnClick = bMaxContrastClick
       end
       object ckAutoOptimise: TCheckBox
-        Left = 64
-        Top = 38
+        Left = 41
+        Top = 68
         Width = 97
         Height = 17
         Caption = 'Auto adjust'
@@ -1304,8 +1326,8 @@ object MainFrm: TMainFrm
         TabOrder = 3
       end
       object ckContrast6SDOnly: TCheckBox
-        Left = 167
-        Top = 38
+        Left = 144
+        Top = 68
         Width = 105
         Height = 17
         Hint = 
@@ -1324,7 +1346,7 @@ object MainFrm: TMainFrm
       end
       object bRange: TButton
         Left = 8
-        Top = 61
+        Top = 42
         Width = 91
         Height = 20
         Hint = 'Set display range to min. - max.  intensities within image'
@@ -1339,8 +1361,8 @@ object MainFrm: TMainFrm
         OnClick = bRangeClick
       end
       object bCursors: TButton
-        Left = 8
-        Top = 87
+        Left = 167
+        Top = 16
         Width = 91
         Height = 20
         Hint = 'Set display range to min. - max.  intensities within image'
@@ -1358,7 +1380,7 @@ object MainFrm: TMainFrm
   end
   object StatusGrp: TGroupBox
     Left = 8
-    Top = 1034
+    Top = 1051
     Width = 297
     Height = 81
     TabOrder = 7

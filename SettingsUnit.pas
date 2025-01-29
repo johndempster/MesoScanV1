@@ -142,6 +142,13 @@ type
     gpStageProtection: TGroupBox;
     edStageProtectionTTLTrigger: TValidatedEdit;
     Label37: TLabel;
+    gpZPositionDial: TGroupBox;
+    Label38: TLabel;
+    edZDialMicronsPerStepCoarse: TValidatedEdit;
+    Label39: TLabel;
+    cbZDialADCInputs: TComboBox;
+    edZDialMicronsPerStepFine: TValidatedEdit;
+    Label41: TLabel;
     procedure FormShow(Sender: TObject);
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
@@ -184,84 +191,6 @@ begin
      Close
      end;
 
-procedure TSettingsFrm.bOKClick(Sender: TObject);
-// --------------------------
-// Update program settings
-// --------------------------
-begin
-    MainFrm.HRFRameWidth := Round(edHRFRameWidth.Value) ;
-    MainFrm.FastFRameWidth := Round(edFastFRameWidth.Value) ;
-    MainFrm.FastFRameHeight := Round(edFastFRameHeight.Value) ;
-    MainFrm.BidirectionalScan := ckBidirectionalScan.Checked ;
-    MainFrm.MaxScanRate := edMaxScanRate.Value ;
-    MainFrm.MinPixelDwellTime := edMinPixelDwellTime.Value ;
-    MainFrm.XVoltsPerMicron := edXVoltsPerMicron.Value ;
-    MainFrm.YVoltsPerMicron := edYVoltsPerMicron.Value ;
-    MainFrm.PhaseShift := edPhaseShift.Value ;
-    MainFrm.CorrectSineWaveDistortion := ckCorrectSineWaveDistortion.Checked ;
-    MainFrm.BlackLevel := Round(edBlackLevel.Value) ;
-
-    MainFrm.NumPMTs := Round(edNumPMTs.Value) ;
-    MainFrm.PMTControls[0] := cbPMTControl0.ItemIndex - 1 ;
-    MainFrm.PMTControls[1] := cbPMTControl1.ItemIndex - 1 ;
-    MainFrm.PMTControls[2] := cbPMTControl2.ItemIndex - 1 ;
-    MainFrm.PMTControls[3] := cbPMTControl3.ItemIndex - 1 ;
-    MainFrm.PMTMaxVolts := edPMTMaxVolts.Value ;
-    MainFrm.UpdatePMTSettings ;
-
-    if (MainFrm.FullFieldWidthMicrons <> edFullFieldWidthMicrons.Value) or
-       (MainFrm.FieldEdge <> edFieldEdge.Value)then
-       begin
-       MainFrm.FullFieldWidthMicrons := edFullFieldWidthMicrons.Value ;
-       MainFrm.FieldEdge := edFieldEdge.Value ;
-       MainFrm.SetScanZoomToFullField ;
-       end;
-
-    MainFrm.InvertPMTSignal := ckInvertPMTSignal.Checked ;
-
-    // Set laser control line menus (for external control)
-    GetLaser( 0, edLaserName0, cbLaserActiveControl0, cbLaserIntensityControl0, edLaserVMax0 ) ;
-    GetLaser( 1, edLaserName1, cbLaserActiveControl1, cbLaserIntensityControl1, edLaserVMax1 ) ;
-    GetLaser( 2, edLaserName2, cbLaserActiveControl2, cbLaserIntensityControl2, edLaserVMax2 ) ;
-    GetLaser( 3, edLaserName3, cbLaserActiveControl3, cbLaserIntensityControl3, edLaserVMax3 ) ;
-    GetLaser( 4, edLaserName4, cbLaserActiveControl4, cbLaserIntensityControl4, edLaserVMax4 ) ;
-    GetLaser( 5, edLaserName5, cbLaserActiveControl5, cbLaserIntensityControl5, edLaserVMax5 ) ;
-    GetLaser( 6, edLaserName6, cbLaserActiveControl6, cbLaserIntensityControl6, edLaserVMax6 ) ;
-    GetLaser( 7, edLaserName7, cbLaserActiveControl7, cbLaserIntensityControl7, edLaserVMax7 ) ;
-
-    Laser.ShutterChangeTime := edLaserShutterChangeTime.Value ;
-
-    ZStage.ControlPort := cbZStagePort.ItemIndex ;
-    ZStage.ZScaleFactor := edZScaleFactor.Value ;
-    ZStage.ZStepTime := edZStepTime.Value ;
-    ZStage.ZPositionMin := edZPositionMin.Value ;
-    ZStage.ZPositionMax := edZPositionMax.Value ;
-    ZStage.StageProtectionTTLTrigger := Round(edStageProtectionTTLTrigger.Value) ;
-
-    MainFrm.ImageJPath := edImageJPath.Text ;
-    MainFrm.SaveAsMultipageTIFF := ckSaveAsMultipageTIFF.Checked ;
-
-    // Raw images storage folder
-    MainFrm.RawImagesDirectory := edRawImagesDirectory.Text ;
-    MainFrm.RawImagesFileName := MainFrm.RawImagesDirectory + 'mesoscan.raw' ;
-
-    Close ;
-    end;
-
-
-procedure TSettingsFrm.cbZStageTypeChange(Sender: TObject);
-//
-// Zstage type changed
-//
-begin
-    ZStage.StageType := cbZStageType.ItemIndex ;
-    ZStage.GetControlPorts(cbZStagePort.Items);
-    cbZStagePort.ItemIndex := Min(Max(ZStage.ControlPort,0),cbZStagePort.Items.Count-1) ;
-
-    edZScaleFactor.Units := ZStage.ScaleFactorUnits ;
-    edZScaleFactor.Value := ZStage.ZScaleFactor ;
-
-    end;
 
 procedure TSettingsFrm.FormShow(Sender: TObject);
 // --------------------------
@@ -334,9 +263,103 @@ begin
     edZPositionMax.Value := ZStage.ZPositionMax ;
     edStageProtectionTTLTrigger.Value := ZStage.StageProtectionTTLTrigger ;
 
+    // Z rotational encoder dial
+    ZStage.GetZDialADCInputs( cbZDialADCInputs.Items ) ;
+    cbZDialADCInputs.ItemIndex := cbZDialADCInputs.Items.IndexOfObject(Tobject(ZStage.ZDialADCInputs)) ;
+    edZDialMicronsPerStepCoarse.Value := ZStage.ZDialMicronsPerStepCoarse ;
+    edZDialMicronsPerStepFine.Value := ZStage.ZDialMicronsPerStepFine ;
+
     edImageJPath.Text := MainFrm.ImageJPath ;
     ckSaveAsMultipageTIFF.Checked := MainFrm.SaveAsMultipageTIFF ;
     edRawImagesDirectory.Text := MainFrm.RawImagesDirectory ;
+
+    end;
+
+
+
+procedure TSettingsFrm.bOKClick(Sender: TObject);
+// --------------------------
+// Update program settings
+// --------------------------
+begin
+    MainFrm.HRFRameWidth := Round(edHRFRameWidth.Value) ;
+    MainFrm.FastFRameWidth := Round(edFastFRameWidth.Value) ;
+    MainFrm.FastFRameHeight := Round(edFastFRameHeight.Value) ;
+    MainFrm.BidirectionalScan := ckBidirectionalScan.Checked ;
+    MainFrm.MaxScanRate := edMaxScanRate.Value ;
+    MainFrm.MinPixelDwellTime := edMinPixelDwellTime.Value ;
+    MainFrm.XVoltsPerMicron := edXVoltsPerMicron.Value ;
+    MainFrm.YVoltsPerMicron := edYVoltsPerMicron.Value ;
+    MainFrm.PhaseShift := edPhaseShift.Value ;
+    MainFrm.CorrectSineWaveDistortion := ckCorrectSineWaveDistortion.Checked ;
+    MainFrm.BlackLevel := Round(edBlackLevel.Value) ;
+
+    MainFrm.NumPMTs := Round(edNumPMTs.Value) ;
+    MainFrm.PMTControls[0] := cbPMTControl0.ItemIndex - 1 ;
+    MainFrm.PMTControls[1] := cbPMTControl1.ItemIndex - 1 ;
+    MainFrm.PMTControls[2] := cbPMTControl2.ItemIndex - 1 ;
+    MainFrm.PMTControls[3] := cbPMTControl3.ItemIndex - 1 ;
+    MainFrm.PMTMaxVolts := edPMTMaxVolts.Value ;
+    MainFrm.UpdatePMTSettings ;
+
+    if (MainFrm.FullFieldWidthMicrons <> edFullFieldWidthMicrons.Value) or
+       (MainFrm.FieldEdge <> edFieldEdge.Value)then
+       begin
+       MainFrm.FullFieldWidthMicrons := edFullFieldWidthMicrons.Value ;
+       MainFrm.FieldEdge := edFieldEdge.Value ;
+       MainFrm.SetScanZoomToFullField ;
+       end;
+
+    MainFrm.InvertPMTSignal := ckInvertPMTSignal.Checked ;
+
+    // Set laser control line menus (for external control)
+    GetLaser( 0, edLaserName0, cbLaserActiveControl0, cbLaserIntensityControl0, edLaserVMax0 ) ;
+    GetLaser( 1, edLaserName1, cbLaserActiveControl1, cbLaserIntensityControl1, edLaserVMax1 ) ;
+    GetLaser( 2, edLaserName2, cbLaserActiveControl2, cbLaserIntensityControl2, edLaserVMax2 ) ;
+    GetLaser( 3, edLaserName3, cbLaserActiveControl3, cbLaserIntensityControl3, edLaserVMax3 ) ;
+    GetLaser( 4, edLaserName4, cbLaserActiveControl4, cbLaserIntensityControl4, edLaserVMax4 ) ;
+    GetLaser( 5, edLaserName5, cbLaserActiveControl5, cbLaserIntensityControl5, edLaserVMax5 ) ;
+    GetLaser( 6, edLaserName6, cbLaserActiveControl6, cbLaserIntensityControl6, edLaserVMax6 ) ;
+    GetLaser( 7, edLaserName7, cbLaserActiveControl7, cbLaserIntensityControl7, edLaserVMax7 ) ;
+
+    Laser.ShutterChangeTime := edLaserShutterChangeTime.Value ;
+
+    ZStage.ControlPort := cbZStagePort.ItemIndex ;
+    ZStage.ZScaleFactor := edZScaleFactor.Value ;
+    ZStage.ZStepTime := edZStepTime.Value ;
+    ZStage.ZPositionMin := edZPositionMin.Value ;
+    ZStage.ZPositionMax := edZPositionMax.Value ;
+    ZStage.StageProtectionTTLTrigger := Round(edStageProtectionTTLTrigger.Value) ;
+
+    // Z rotational encoder dial
+    ZStage.StopZDialADC ;
+    ZStage.ZDialADCInputs := Integer(cbZDialADCInputs.Items.Objects[Max(cbZDialADCInputs.ItemIndex,0)]) ;
+    ZStage.ZDialMicronsPerStepCoarse := edZDialMicronsPerStepCoarse.Value ;
+    ZStage.ZDialMicronsPerStepFine := edZDialMicronsPerStepFine.Value ;
+    ZStage.StartZDialADC ;
+
+    MainFrm.ImageJPath := edImageJPath.Text ;
+    MainFrm.SaveAsMultipageTIFF := ckSaveAsMultipageTIFF.Checked ;
+
+    // Raw images storage folder
+    MainFrm.RawImagesDirectory := edRawImagesDirectory.Text ;
+    MainFrm.RawImagesFileName := MainFrm.RawImagesDirectory + 'mesoscan.raw' ;
+
+    Close ;
+    end;
+
+
+procedure TSettingsFrm.cbZStageTypeChange(Sender: TObject);
+//
+// Zstage type changed
+//
+begin
+    ZStage.StageType := cbZStageType.ItemIndex ;
+    ZStage.GetControlPorts(cbZStagePort.Items);
+    cbZStagePort.ItemIndex := Min(Max(ZStage.ControlPort,0),cbZStagePort.Items.Count-1) ;
+
+    edZScaleFactor.Units := ZStage.ScaleFactorUnits ;
+    edZScaleFactor.Value := ZStage.ZScaleFactor ;
 
     end;
 
