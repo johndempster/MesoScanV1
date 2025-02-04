@@ -279,9 +279,9 @@ else
   Create Shortcut $SHORTCUTFOLDER$\Uninstall #TITLE# to $UNINSTALLLINK$
   [OFFLINE CONTENT]
   Get Folder Location Start Menu->Start Menu Group into SHORTCUTROOT
-  Create Shortcut $SHORTCUTROOT$\MesoScan V1.7.8 to $TARGETDIR$\MesoScan.exe
-  Create Shortcut $SHORTCUTFOLDER$\MesoScan V1.7.8 to $TARGETDIR$\MesoScan.exe
-  Create Shortcut $DESKTOPDIR$\MesoScan V1.7.8 to $TARGETDIR$\MesoScan.exe
+  Create Shortcut $SHORTCUTROOT$\MesoScan V1.7.9 to $TARGETDIR$\MesoScan.exe
+  Create Shortcut $SHORTCUTFOLDER$\MesoScan V1.7.9 to $TARGETDIR$\MesoScan.exe
+  Create Shortcut $DESKTOPDIR$\MesoScan V1.7.9 to $TARGETDIR$\MesoScan.exe
   Install Files C:\Users\John\Documents\Embarcadero\Studio\Projects\MesoScanV1\MesoScan.exe to $TARGETDIR$
   [DEFINE WEB MEDIA MesoScan Setup]
   Get Component MesoScan Setup Selection State into Variable SELECTED

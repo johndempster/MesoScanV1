@@ -24,6 +24,7 @@ unit ZStageUnit;
 //          produced by Mesoscope V3 stage protection circuit when microswitches closed
 // V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
 
+
 interface
 
 uses
@@ -87,6 +88,10 @@ type
     ZPositionMin : Double ;  // Z position lower limit (um)
     ZScaleFactor : Double ;  // Z step scaling factor
     ZStepTime : Double ;     // Time to perform Z step (s)
+    ZPositionLog : Array[0..2] of double ; // Z position log
+    iZLog : integer ;                      // log index
+    Moving : Boolean ;       // Stage movement in progress
+
     StageProtectionTTLTrigger : Integer ; // Stage protection trigger
                                           // 1= on TTL high, 0 = on TTL low
 
@@ -152,6 +157,8 @@ procedure TZStage.DataModuleCreate(Sender: TObject);
 // ---------------------------------------
 // Initialisations when module is created
 // ---------------------------------------
+var
+    i : Integer ;
 begin
     FStageType := stNone ;
     ComPortOpen := False ;
@@ -171,6 +178,10 @@ begin
     RequestedYPos := 0.0 ;
     RequestedZPos := 0.0 ;
     StageProtectionTTLTrigger := 0 ; // Default = trigger on low (for V3+ protection stages)
+
+    for i := 0 to High(ZPositionLog) do ZPositionLog[i] := ZPosition ;
+    iZLog := 0 ;
+    Moving := False ;
 
     ZDialADCInputs := MaxResources ;
     ZDialMicronsPerStepCoarse := 100.0 ;        // Microns movement per step of rotational encoder (coarse)
@@ -295,7 +306,10 @@ procedure TZStage.UpdateZPosition ;
 // ---------------------------
 // Update position of Z stage
 // ---------------------------
+var
+    i : Integer ;
 begin
+
     case FStageType of
         stOptiscanII :
           begin
@@ -322,6 +336,17 @@ begin
           end;
         stPiezo : UpdateZPositionPZ ;
         end;
+
+    // Update Z movement log with new position
+    ZPositionLog[iZLog] := ZPosition ;
+    Inc(iZLog) ;
+    if iZLog > High(ZPositionLog) then iZLog := 0 ;
+
+    // Determine if stage moving (in Z)
+    Moving := False ;
+    for i := 1 to High(ZPositionLog) do
+        if ZPositionLog[i] <> ZPositionLog[0] then Moving := True ;
+
     end;
 
 procedure TZStage.MoveTo( X : Double ; // New X pos.
@@ -606,6 +631,7 @@ begin
 
              ControlState := csIdle ;
              end;
+
           end ;
 
         csWaitingForCompletion :

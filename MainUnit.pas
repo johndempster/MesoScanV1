@@ -63,6 +63,7 @@ unit MainUnit;
 // V1.7.6 05.08.24 PMT electron gain control now remains active during scan
 // V1.7.7 10.08.24 Track bar added allowing mouse control of Z position
 // V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
+// V1.7.9 04.02.35 Z dial step now only moves stage after previous movement finishes
 
 interface
 
@@ -393,6 +394,7 @@ type
     NumLinesPerZStep : Integer ;      // No. lines per Z step in XZ mode
     XZLine : Integer ;                // XZ mode line counter
     ZStartingPosition : Double ;      // Z position at start of scanning
+    ZStepsPending : Double ;          // Z dial steps (um) waiting to be executed
     ADCPointer : Integer ;
     EmptyFlag : Integer ;
     UpdateDisplay : Boolean ;
@@ -644,13 +646,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.8 ';
+     Caption := 'MesoScan V1.7.9 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 29/01/25';
+    Caption := Caption + ' 04/02/25';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -2488,8 +2490,6 @@ procedure TMainFrm.TimerTimer(Sender: TObject);
 // -------------------------
 // Regular timed operations
 // --------------------------
-var
-    ZStep : Double ;
 begin
 
     if ScanningInProgress then EnablePMTControls( False )
@@ -2526,10 +2526,11 @@ begin
     //
     if ZStage.ZDialAvailable then
        begin
-       ZStep := ZStage.GetZDialRotation ;
-       if ZStep <> 0.0  then
+       ZStepsPending := ZStage.GetZDialRotation + ZStepsPending ;
+       if (ZStepsPending <> 0.0) and (not ZStage.Moving) then
           begin
-          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStep ) ;
+          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStepsPending ) ;
+          ZStepsPending := 0.0 ;
           end;
        tbZPosition.Position := Round(ZStage.ZPosition) ;
        rbZDialCoarse.Checked := ZStage.ZDialCoarseStep ;
@@ -2539,6 +2540,7 @@ begin
        begin
        // Start monitor of Z dial encoder pulses
        ZStage.StartZDialADC ;
+       ZStepsPending := 0.0 ;
        end;
 
      // Report stage position
