@@ -23,6 +23,7 @@ unit ZStageUnit;
 // 14.09.20 Prior stage protection interrupt now triggered by a TTL high-low transition
 //          produced by Mesoscope V3 stage protection circuit when microswitches closed
 // V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
+// V1.8.0 05.02.25 Z position log nicreased to 5.
 
 
 interface
@@ -88,7 +89,7 @@ type
     ZPositionMin : Double ;  // Z position lower limit (um)
     ZScaleFactor : Double ;  // Z step scaling factor
     ZStepTime : Double ;     // Time to perform Z step (s)
-    ZPositionLog : Array[0..2] of double ; // Z position log
+    ZPositionLog : Array[0..4] of double ; // Z position log
     iZLog : integer ;                      // log index
     Moving : Boolean ;       // Stage movement in progress
 

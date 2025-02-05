@@ -64,6 +64,7 @@ unit MainUnit;
 // V1.7.7 10.08.24 Track bar added allowing mouse control of Z position
 // V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
 // V1.7.9 04.02.35 Z dial step now only moves stage after previous movement finishes
+// V1.8.0 05.02.25 Z position updates after Z dial rotations now resticted to no more than 1 / sec
 
 interface
 
@@ -395,6 +396,7 @@ type
     XZLine : Integer ;                // XZ mode line counter
     ZStartingPosition : Double ;      // Z position at start of scanning
     ZStepsPending : Double ;          // Z dial steps (um) waiting to be executed
+    ZDialWaitCount : Integer ;        // Z dial wait counter (restricts rate of Z stage updates)
     ADCPointer : Integer ;
     EmptyFlag : Integer ;
     UpdateDisplay : Boolean ;
@@ -632,7 +634,8 @@ begin
      Image[3] := Image0 ;}
 
      NewZStageTrackbarPosition := False ;
-     
+     ZDialWaitCount := 0 ;
+     ZStepsPending := 0 ;
 
      end;
 
@@ -646,13 +649,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.7.9 ';
+     Caption := 'MesoScan V1.8.0 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 04/02/25';
+    Caption := Caption + ' 05/02/25';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -2527,11 +2530,18 @@ begin
     if ZStage.ZDialAvailable then
        begin
        ZStepsPending := ZStage.GetZDialRotation + ZStepsPending ;
-       if (ZStepsPending <> 0.0) and (not ZStage.Moving) then
+       if (ZStepsPending <> 0.0) and (not ZStage.Moving) and (ZDialWaitCount <= 0) then
           begin
           ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStepsPending ) ;
           ZStepsPending := 0.0 ;
-          end;
+          ZDialWaitCount := 10 ;  // = 10 timer ticks = 1s
+          end
+       else
+         begin
+         // Decrement wait counter
+         ZDialWaitCount :=  Max( ZDialWaitCount - 1,0) ;
+         end;
+
        tbZPosition.Position := Round(ZStage.ZPosition) ;
        rbZDialCoarse.Checked := ZStage.ZDialCoarseStep ;
        rbZDialFine.Checked := not ZStage.ZDialCoarseStep ;
