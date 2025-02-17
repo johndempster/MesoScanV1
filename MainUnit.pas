@@ -2534,7 +2534,7 @@ begin
           begin
           ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStepsPending ) ;
           ZStepsPending := 0.0 ;
-          ZDialWaitCount := 10 ;  // = 10 timer ticks = 1s
+          ZDialWaitCount := 5 ;  // = 5 timer ticks = 0.5s
           end
        else
          begin

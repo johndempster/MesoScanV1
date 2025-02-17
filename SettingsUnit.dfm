@@ -1169,7 +1169,7 @@ object SettingsFrm: TSettingsFrm
           Units = 'um'
           NumberFormat = '%.1f'
           LoLimit = 10.000000000000000000
-          HiLimit = 100.000000000000000000
+          HiLimit = 250.000000000000000000
         end
         object cbZDialADCInputs: TComboBox
           Left = 120
@@ -1192,7 +1192,7 @@ object SettingsFrm: TSettingsFrm
           Units = 'um'
           NumberFormat = '%.1f'
           LoLimit = 0.100000001490116100
-          HiLimit = 2.000000000000000000
+          HiLimit = 250.000000000000000000
         end
       end
     end
