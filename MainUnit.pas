@@ -65,6 +65,12 @@ unit MainUnit;
 // V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
 // V1.7.9 04.02.35 Z dial step now only moves stage after previous movement finishes
 // V1.8.0 05.02.25 Z position updates after Z dial rotations now resticted to no more than 1 / sec
+// V1.8.1 17.02.25 Z dial encoder sampling rate increased to 3.3 kHz to ensure detection of pulses
+//                 when dial rotated quickly. Delay between Z stage updates reduced to 0.5s
+//                 Upper limit of Z dial steps set to 250 um.
+// V1.8.2 03.03.25 User entered commands can now be sent directly to Prior stages
+//                 Only COM that exist are now listed
+
 
 interface
 
@@ -649,13 +655,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.8.0 ';
+     Caption := 'MesoScan V1.8.2 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 05/02/25';
+    Caption := Caption + ' 03/03/25';
 
      TempBuf := Nil ;
      DeviceNum := 1 ;
@@ -809,6 +815,9 @@ begin
      LoadSettingsFromXMLFile( INIFileName ) ;
      // Create raw image file name
      RawImagesFileName := RawImagesDirectory + 'mesoscan.raw' ;
+
+     // Open Z stage
+     ZStage.Open ;
 
      // Load normal scan
 

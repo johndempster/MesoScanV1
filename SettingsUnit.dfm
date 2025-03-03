@@ -1025,11 +1025,12 @@ object SettingsFrm: TSettingsFrm
         end
         object cbZStagePort: TComboBox
           Left = 120
-          Top = 43
+          Top = 41
           Width = 97
           Height = 21
           Style = csDropDownList
           TabOrder = 0
+          OnChange = cbZStagePortChange
         end
         object edZScaleFactor: TValidatedEdit
           Left = 120
@@ -1097,7 +1098,7 @@ object SettingsFrm: TSettingsFrm
         Left = 3
         Top = 207
         Width = 233
-        Height = 98
+        Height = 146
         Caption = ' Stage Protection '
         TabOrder = 1
         object Label37: TLabel
@@ -1193,6 +1194,63 @@ object SettingsFrm: TSettingsFrm
           NumberFormat = '%.1f'
           LoLimit = 0.100000001490116100
           HiLimit = 250.000000000000000000
+        end
+      end
+      object gpPriorCommands: TGroupBox
+        Left = 242
+        Top = 207
+        Width = 233
+        Height = 146
+        Caption = ' Prior Command Terminal'
+        TabOrder = 3
+        object Label40: TLabel
+          Left = 8
+          Top = 20
+          Width = 51
+          Height = 13
+          Alignment = taRightJustify
+          Caption = 'Command:'
+          WordWrap = True
+        end
+        object lbReply: TLabel
+          Left = 28
+          Top = 43
+          Width = 31
+          Height = 13
+          Alignment = taRightJustify
+          Caption = 'Reply:'
+          WordWrap = True
+        end
+        object edPriorCommand: TEdit
+          Left = 65
+          Top = 16
+          Width = 100
+          Height = 21
+          TabOrder = 0
+        end
+        object bPriorSend: TButton
+          Left = 171
+          Top = 16
+          Width = 50
+          Height = 20
+          Caption = 'Send'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = [fsBold]
+          ParentFont = False
+          TabOrder = 1
+          OnClick = bPriorSendClick
+        end
+        object mePriorReply: TMemo
+          Left = 65
+          Top = 40
+          Width = 155
+          Height = 97
+          Lines.Strings = (
+            '')
+          TabOrder = 2
         end
       end
     end

@@ -24,12 +24,19 @@ unit ZStageUnit;
 //          produced by Mesoscope V3 stage protection circuit when microswitches closed
 // V1.7.8 28.01.25 Rotational encoder added to provide coarse/fine control of Z stage movement
 // V1.8.0 05.02.25 Z position log nicreased to 5.
+// V1.8.1 17.02.25 Z dial encoder sampling rate increased to 3.3 kHz to ensure detection of pulses
+//                 when dial rotated quickly. Delay between Z stage updates reduced to 0.5s
+//                 Upper limit of Z dial steps set to 250 um.
+// V1.8.2 03.03.25 PriorSendCommand() and PriorReadReply() added to directly send commands to Rior stages
+//                 Only COM that exist are now listed
+
+
 
 
 interface
 
 uses
-  System.SysUtils, System.Classes, Windows, FMX.Dialogs, math, strutils ;
+  System.SysUtils, System.Classes, Dialogs, math, strutils, Windows, System.Win.Registry, forms ;
 
 type
   TZStage = class(TDataModule)
@@ -44,13 +51,19 @@ type
     FBaudRate : DWord ;       // Com port baud rate
     ControlState : Integer ;  // Z stage control state
     Status : String ;         // Z stage status report
-    MoveToRequest : Boolean ;   // Go to Final flag
+
+    SendCommandRequest : Boolean ;  // Request command be sent to stage
+    Command : string ;              // Stage command to be send
+    Reply : string ;                // Repky to state command
+
+    MoveToRequest : Boolean ;       // Request stage movement
     MoveToPosition : Double ;   // Position (um) to go to
     RequestedXPos : Double ;   // Intermediate X position
     RequestedYPos : Double ;   // Intermediate Y position
     RequestedZPos : Double ;   // Intermediate Z position
-
     StageInitRequired : Boolean ; // Stage needs to be initialised
+
+
 
     OverLapStructure : POVERLAPPED ;
 
@@ -78,6 +91,7 @@ type
              ResponseRequired : string
              ) : Boolean ;
     procedure Wait( Delay : double ) ;
+    function GetAvailableCOMPorts: TStringList;
   public
     { Public declarations }
     XPosition : Double ;     // X position (um)
@@ -117,6 +131,8 @@ type
     procedure StartZDialADC ;
     procedure StopZDialADC ;
     function GetZDialRotation : double ;
+    procedure PriorSendCommand( CommandIn : string ) ;
+    function PriorReadReply : string ;
 
   published
     Property ControlPort : DWORD read FControlPort write SetControlPort ;
@@ -140,6 +156,7 @@ const
     csIdle = 0 ;
     csWaitingForPosition = 1 ;
     csWaitingForCompletion = 2 ;
+    csWaitingForReply = 3 ;
 
     stNone = 0 ;
     stOptiscanII = 1 ;
@@ -190,9 +207,6 @@ begin
     ZDialMicronsPerStepFine := 0.2 ;            // Microns movement per step of rotational encoder (fine)
     ZDialAvailable := False ;
 
-    // Start monitoring of Z dial encoder
-    StartZDialADC ;
-
 
     MoveToRequest := False ;
     StageInitRequired := False ;
@@ -234,7 +248,8 @@ begin
      case FStageType of
         stOptiscanII,stProScanIII : begin
           // COM ports
-          for i := 1 to 16 do List.Add(format('COM%d',[i]));
+          List.Assign( GetAvailableComPorts ) ;
+//          for i := 1 to 16 do List.Add(format('COM%d',[i]));
           end ;
         stPiezo : begin
           // Analog outputs
@@ -279,6 +294,10 @@ begin
 
           end;
         end;
+
+    // Start monitoring of Z dial encoder
+    StartZDialADC ;
+
     end;
 
 function TZStage.GetScaleFactorUnits : string ;
@@ -378,9 +397,10 @@ var
 begin
 
      ComPortOpen := False ;
+     if ControlPort <= 0 then Exit ;
 
      { Open com port  }
-     ComHandle :=  CreateFile( PCHar(format('COM%d',[ControlPort+1])),
+     ComHandle :=  CreateFile( PCHar(format('COM%d',[ControlPort])),
                      GENERIC_READ or GENERIC_WRITE,
                      0,
                      Nil,
@@ -432,6 +452,7 @@ begin
      if ComPortOpen then CloseHandle( ComHandle ) ;
      ComPortOpen := False ;
      end ;
+
 
 function TZStage.SendCommand(
           const Line : string   { Text to be sent to Com port }
@@ -485,6 +506,29 @@ begin
      end ;
 
 
+function TZStage.PriorReadReply : string ;
+// -------------------------
+// Wait for and return reply
+// -------------------------
+var
+  Response : string ;
+  EndOfLine : Boolean ;
+  Timeout : Cardinal ;
+begin
+
+   Result := '' ;
+   TimeOut := timegettime + 1000 ;
+
+   while (Reply = '') and (timegettime < TimeOut) do
+      begin
+      application.ProcessMessages ;
+      end;
+
+   Result := Reply ;
+
+   end ;
+
+
 function TZStage.WaitforResponse(
          ResponseRequired : string
           ) : Boolean ;
@@ -506,6 +550,7 @@ begin
    if Response = ResponseRequired then Result := True
                                   else Result := False ;
    end ;
+
 
 
 function TZStage.ReceiveBytes(
@@ -570,7 +615,18 @@ begin
              StageInitRequired := False ;
           end;
 
-          if MoveToRequest then
+          if SendCommandRequest then
+             begin
+             //
+             // Send a command to stage
+             //
+             Reply := '' ;
+             OK := SendCommand( Command ) ;
+             if OK then ControlState := csWaitingForReply ;
+             SendCommandRequest := False ;
+
+             end
+          else if MoveToRequest then
              begin
              // Stop any stage moves in progress
              OK := SendCommand('I');
@@ -614,6 +670,7 @@ begin
                       if c <> ',' then s := s + Status[i] ;
                       // Remove error flag (if represent)
                       s := ReplaceText(s,'R','');
+                      s := ReplaceText(s,'P','');
                       if (not ContainsText(s,'R')) and (s<>'') then
                          begin
                          case iNum of
@@ -647,6 +704,21 @@ begin
              end;
 
           end;
+
+        csWaitingForReply :
+          begin
+          // Wait for response from command
+          Status := status + ReceiveBytes( EndOfLine ) ;
+          if EndOfLine then
+             begin
+             outputdebugstring(pchar(status));
+             Reply := Status ;
+             Status := '' ;
+             ControlState := csIdle ;
+             end;
+
+          end;
+
     end;
 
 end;
@@ -696,11 +768,8 @@ begin
     case FStageType of
         stOptiscanII,stProScanIII :
           begin
-          if ComPortOpen then
-             begin
-             CloseComPort ;
-             OpenComPort ;
-             end;
+          if ComPortOpen then CloseComPort ;
+          OpenComPort ;
           end;
         end;
     end;
@@ -796,11 +865,12 @@ begin
 
       // ACcquire 3 channels (AI0-AI2), into 10000 sample circular buffer at 1ms intervals
       // AI0=Encoder A, AI1=Encoder B, AI2=Coarse/fine switch
+      // Sampling at 3.3kHz per channel to ensure pulses detected correctly when dial rotated quickly
 
       LabIO.ADCToMemory( LabIO.Resource[ZDialADCInputs].Device,
                          ZDialNumADCChannels,
                          ZDialMaxADCPoints,
-                         1E-3, True) ;
+                         3E-4, True) ;
 
       ZDialAvailable := True ;
       A_State := False ;
@@ -879,6 +949,57 @@ begin
 
      FreeMem(ADCBuf) ;
 end;
+
+
+procedure TZStage.PriorSendCommand( CommandIn : string ) ;
+// ---------------------------
+// Send command to Prior stage
+// ---------------------------
+begin
+     Reply := '' ;
+     Command := CommandIn ;
+     SendCommandRequest := True ;
+end;
+
+
+
+function TZStage.GetAvailableCOMPorts: TStringList;
+// ------------------------------------
+// Return a list of available COM ports
+// ------------------------------------
+var
+  Reg: TRegistry;
+  Ports: TStringList;
+  Keys: TStringList;
+  s : string ;
+  i,iNum : Integer;
+begin
+  Ports := TStringList.Create;
+  Ports.AddObject( 'Off', Nil ) ;
+  Reg := TRegistry.Create(KEY_READ);
+  Keys := TStringList.Create;
+  try
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+    if Reg.OpenKeyReadOnly('HARDWARE\DEVICEMAP\SERIALCOMM') then
+    begin
+      Reg.GetValueNames(Keys);
+      for i := 0 to Keys.Count - 1 do
+        begin
+        s := ReplaceText( Reg.ReadString(Keys[i]), 'COM', '' ) ;
+        iNum := StrToInt(s) ;
+        Ports.AddObject( Reg.ReadString(Keys[i]),TObject(iNum)) ;
+        end;
+
+      Reg.CloseKey;
+    end;
+  finally
+    Keys.Free;
+    Reg.Free;
+  end;
+  Result := Ports;
+end;
+
+
 
 
 end.

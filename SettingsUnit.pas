@@ -149,10 +149,18 @@ type
     cbZDialADCInputs: TComboBox;
     edZDialMicronsPerStepFine: TValidatedEdit;
     Label41: TLabel;
+    gpPriorCommands: TGroupBox;
+    Label40: TLabel;
+    edPriorCommand: TEdit;
+    bPriorSend: TButton;
+    mePriorReply: TMemo;
+    lbReply: TLabel;
     procedure FormShow(Sender: TObject);
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure cbZStageTypeChange(Sender: TObject);
+    procedure bPriorSendClick(Sender: TObject);
+    procedure cbZStagePortChange(Sender: TObject);
   private
     { Private declarations }
     procedure SetLaser(
@@ -253,8 +261,8 @@ begin
     ZStage.GetZStageTypes(cbZStageType.Items);
     cbZStageType.ItemIndex := Min(Max(ZStage.StageType,0),cbZStageType.Items.Count-1) ;
 
-    ZStage.GetControlPorts(cbZStagePort.Items);
-    cbZStagePort.ItemIndex := Min(Max(ZStage.ControlPort,0),cbZStagePort.Items.Count-1) ;
+    ZStage.GetControlPorts( cbZStagePort.Items );
+    cbZStagePort.ItemIndex := cbZStagePort.Items.IndexOfObject(TObject(ZStage.ControlPort)) ;
 
     edZScaleFactor.Units := ZStage.ScaleFactorUnits ;
     edZScaleFactor.Value := ZStage.ZScaleFactor ;
@@ -324,7 +332,7 @@ begin
 
     Laser.ShutterChangeTime := edLaserShutterChangeTime.Value ;
 
-    ZStage.ControlPort := cbZStagePort.ItemIndex ;
+    ZStage.ControlPort := Integer( cbZStagePort.Items.Objects[cbZStagePort.ItemIndex] ) ;
     ZStage.ZScaleFactor := edZScaleFactor.Value ;
     ZStage.ZStepTime := edZStepTime.Value ;
     ZStage.ZPositionMin := edZPositionMin.Value ;
@@ -347,6 +355,30 @@ begin
 
     Close ;
     end;
+
+
+procedure TSettingsFrm.bPriorSendClick(Sender: TObject);
+// ----------------------------------------------
+// Send command to Prior stage and wait for reply
+// ----------------------------------------------
+var
+    TimedOut : Boolean ;
+    s : string ;
+begin
+    ZStage.PriorSendCommand( edPriorCommand.Text ) ;
+    s := ZStage.PriorReadReply ;
+    if s = '' then s := 'No Reply' ;
+    mePriorReply.Lines.Add( s ) ;
+end;
+
+
+procedure TSettingsFrm.cbZStagePortChange(Sender: TObject);
+// ----------------
+// COM port changed
+// ----------------
+begin
+    ZStage.ControlPort := Integer( cbZStagePort.Items.Objects[cbZStagePort.ItemIndex] ) ;
+end;
 
 
 procedure TSettingsFrm.cbZStageTypeChange(Sender: TObject);
