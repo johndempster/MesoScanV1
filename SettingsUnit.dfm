@@ -3,8 +3,8 @@ object SettingsFrm: TSettingsFrm
   Top = 0
   BorderStyle = bsDialog
   Caption = ' Scan Settings '
-  ClientHeight = 437
-  ClientWidth = 773
+  ClientHeight = 456
+  ClientWidth = 779
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,7 +16,7 @@ object SettingsFrm: TSettingsFrm
   TextHeight = 13
   object bOK: TButton
     Left = 8
-    Top = 407
+    Top = 423
     Width = 65
     Height = 25
     Caption = 'OK'
@@ -32,7 +32,7 @@ object SettingsFrm: TSettingsFrm
   end
   object bCancel: TButton
     Left = 79
-    Top = 410
+    Top = 423
     Width = 72
     Height = 20
     Caption = 'Cancel'
@@ -48,49 +48,72 @@ object SettingsFrm: TSettingsFrm
   end
   object StageTab: TPageControl
     Left = 8
-    Top = 6
+    Top = 8
     Width = 761
-    Height = 395
-    ActivePage = TabSheet1
+    Height = 409
+    ActivePage = PMTTab
     TabOrder = 2
     object ScanTab: TTabSheet
       Caption = 'Scanning'
       object ImageHRGrp: TGroupBox
-        Left = 8
-        Top = 10
+        Left = 3
+        Top = 3
         Width = 235
-        Height = 103
+        Height = 134
         Caption = ' Image (hi. res. scan)'
         TabOrder = 0
         object Label1: TLabel
-          Left = 43
+          Left = 33
           Top = 18
-          Width = 88
-          Height = 13
+          Width = 105
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Hi. Res. Pixels/line'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label4: TLabel
-          Left = 26
+          Left = 21
           Top = 42
-          Width = 97
-          Height = 13
+          Width = 117
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Fast Scan Pixels/line'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label12: TLabel
-          Left = 17
+          Left = 9
           Top = 72
-          Width = 106
-          Height = 13
+          Width = 129
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Fast Scan Lines/image'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object edHRFrameWidth: TValidatedEdit
-          Left = 140
+          Left = 144
           Top = 18
-          Width = 90
-          Height = 21
+          Width = 80
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 1000 '
           Value = 1000.000000000000000000
           Scale = 1.000000000000000000
@@ -99,10 +122,15 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 30000.000000000000000000
         end
         object edFastFrameWidth: TValidatedEdit
-          Left = 140
+          Left = 144
           Top = 45
-          Width = 90
-          Height = 21
+          Width = 80
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 500 '
           Value = 500.000000000000000000
           Scale = 1.000000000000000000
@@ -111,10 +139,15 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 30000.000000000000000000
         end
         object edFastFrameHeight: TValidatedEdit
-          Left = 140
+          Left = 144
           Top = 72
-          Width = 90
-          Height = 21
+          Width = 80
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 50 '
           Value = 50.000000000000000000
           Scale = 1.000000000000000000
@@ -122,86 +155,154 @@ object SettingsFrm: TSettingsFrm
           LoLimit = 10.000000000000000000
           HiLimit = 30000.000000000000000000
         end
+        object ckFastBidirectionalScan: TCheckBox
+          Left = 25
+          Top = 102
+          Width = 201
+          Height = 17
+          Alignment = taLeftJustify
+          Caption = 'Fast bi-directional scan'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          TabOrder = 3
+        end
       end
       object ScanGrp: TGroupBox
-        Left = 256
-        Top = 10
-        Width = 235
-        Height = 241
+        Left = 244
+        Top = 3
+        Width = 267
+        Height = 278
         Caption = ' Scan Settings'
         TabOrder = 1
         object Label3: TLabel
-          Left = 73
-          Top = 110
-          Width = 58
-          Height = 13
+          Left = 97
+          Top = 76
+          Width = 68
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Phase delay'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object xscalelab: TLabel
-          Left = 66
-          Top = 136
-          Width = 65
-          Height = 13
+          Left = 87
+          Top = 106
+          Width = 78
+          Height = 16
           Alignment = taRightJustify
           Caption = 'X scale factor'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label5: TLabel
-          Left = 66
-          Top = 160
-          Width = 65
-          Height = 13
+          Left = 88
+          Top = 136
+          Width = 77
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Y scale factor'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label6: TLabel
-          Left = 59
-          Top = 184
-          Width = 72
-          Height = 13
+          Left = 81
+          Top = 166
+          Width = 84
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Max. scan rate'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label9: TLabel
-          Left = 36
-          Top = 208
-          Width = 95
-          Height = 13
+          Left = 48
+          Top = 196
+          Width = 117
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Min. pixel dwell time'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label11: TLabel
-          Left = 78
-          Top = 18
-          Width = 53
-          Height = 13
+          Left = 101
+          Top = 16
+          Width = 64
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Field Width'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label24: TLabel
-          Left = 82
-          Top = 44
-          Width = 49
-          Height = 13
+          Left = 104
+          Top = 46
+          Width = 59
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Field Edge'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object ckCorrectSineWaveDistortion: TCheckBox
-          Left = 26
-          Top = 88
+          Left = 55
+          Top = 226
           Width = 201
           Height = 15
           Alignment = taLeftJustify
           Caption = 'Correct Sine Wave Distortion'
           Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           State = cbChecked
           TabOrder = 0
         end
         object edPhaseShift: TValidatedEdit
-          Left = 137
-          Top = 110
+          Left = 169
+          Top = 76
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 0 ms'
           Scale = 1000.000000000000000000
           Units = 'ms'
@@ -210,10 +311,15 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 20000.000000000000000000
         end
         object edXVoltsPerMicron: TValidatedEdit
-          Left = 137
-          Top = 136
+          Left = 169
+          Top = 106
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 1 V/um'
           Value = 1.000000000000000000
           Scale = 1.000000000000000000
@@ -223,10 +329,15 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 1.000000000000000000
         end
         object edYVoltsPerMicron: TValidatedEdit
-          Left = 137
-          Top = 160
+          Left = 169
+          Top = 136
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 1 V/um'
           Value = 1.000000000000000000
           Scale = 1.000000000000000000
@@ -236,10 +347,15 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 10.000000000000000000
         end
         object edMaxScanRate: TValidatedEdit
-          Left = 137
-          Top = 184
+          Left = 169
+          Top = 166
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 100.0 Hz'
           Value = 100.000000000000000000
           Scale = 1.000000000000000000
@@ -248,20 +364,16 @@ object SettingsFrm: TSettingsFrm
           LoLimit = 1.000000000000000000
           HiLimit = 500.000000000000000000
         end
-        object ckBidirectionalScan: TCheckBox
-          Left = 26
-          Top = 65
-          Width = 201
-          Height = 17
-          Alignment = taLeftJustify
-          Caption = 'Bi-directional scan'
-          TabOrder = 5
-        end
         object edMinPixelDwellTime: TValidatedEdit
-          Left = 137
-          Top = 205
+          Left = 169
+          Top = 196
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 0.5 us'
           Value = 0.000000499999998738
           Scale = 1000000.000000000000000000
@@ -271,11 +383,16 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 1.000000000000000000
         end
         object edFullFieldWidthMicrons: TValidatedEdit
-          Left = 137
-          Top = 18
+          Left = 169
+          Top = 16
           Width = 90
-          Height = 21
+          Height = 24
           Hint = 'Maximum width of scanning field (um)'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           ShowHint = True
           Text = ' 5000 um'
           Value = 5000.000000000000000000
@@ -286,13 +403,18 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 10000.000000000000000000
         end
         object edFieldEdge: TValidatedEdit
-          Left = 137
-          Top = 43
+          Left = 169
+          Top = 46
           Width = 90
-          Height = 21
+          Height = 24
           Hint = 
             'Additional non-imaging region at edge of field (% of field width' +
             ')'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           ShowHint = True
           Text = ' 5 %'
           Value = 0.050000000745058060
@@ -303,77 +425,393 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 0.200000002980232200
         end
       end
+      object gpDevices: TGroupBox
+        Left = 244
+        Top = 287
+        Width = 267
+        Height = 83
+        Caption = ' Devices Detected '
+        TabOrder = 2
+        object meDeviceList: TMemo
+          Left = 8
+          Top = 16
+          Width = 249
+          Height = 57
+          Hint = 'List of National Instruments devices detected'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          Lines.Strings = (
+            'meDeviceList')
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 0
+        end
+      end
+      object gpXYGalvos: TGroupBox
+        Left = 3
+        Top = 252
+        Width = 235
+        Height = 113
+        Caption = ' Scanning Galvanometer Control'
+        TabOrder = 3
+        object Label42: TLabel
+          Left = 19
+          Top = 44
+          Width = 83
+          Height = 14
+          Alignment = taRightJustify
+          Caption = 'X Galvo Control'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object Label43: TLabel
+          Left = 18
+          Top = 74
+          Width = 84
+          Height = 14
+          Alignment = taRightJustify
+          Caption = 'Y Galvo Control'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object Label44: TLabel
+          Left = 181
+          Top = 24
+          Width = 38
+          Height = 14
+          Alignment = taRightJustify
+          Caption = 'Invert'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Tahoma'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object cbXGalvoControl: TComboBox
+          Left = 108
+          Top = 44
+          Width = 90
+          Height = 24
+          Hint = 'Analogue output (AO) port controlling X galvanometer'
+          Style = csDropDownList
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 0
+        end
+        object cbYGalvoControl: TComboBox
+          Left = 108
+          Top = 74
+          Width = 90
+          Height = 24
+          Hint = 'Analogue output (AO) port controlling Y galvanometer'
+          Style = csDropDownList
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 1
+        end
+        object ckXGalvoInvert: TCheckBox
+          Left = 204
+          Top = 44
+          Width = 25
+          Height = 17
+          Hint = 'Invert X axis galvo control signal'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 2
+        end
+        object ckYGalvoInvert: TCheckBox
+          Left = 204
+          Top = 74
+          Width = 25
+          Height = 17
+          Hint = 'Invert Y axis galvo control signal'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 3
+        end
+      end
+      object gpFocusMode: TGroupBox
+        Left = 3
+        Top = 143
+        Width = 235
+        Height = 103
+        Caption = ' Focus Mode '
+        TabOrder = 4
+        object Label45: TLabel
+          Left = 73
+          Top = 18
+          Width = 65
+          Height = 16
+          Alignment = taRightJustify
+          Caption = 'Pixels / line'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object Label46: TLabel
+          Left = 61
+          Top = 42
+          Width = 77
+          Height = 16
+          Alignment = taRightJustify
+          Caption = 'Lines / image'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object Label47: TLabel
+          Left = 45
+          Top = 72
+          Width = 93
+          Height = 16
+          Alignment = taRightJustify
+          Caption = 'Scanned region '
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object edFocusModeFrameWidth: TValidatedEdit
+          Left = 144
+          Top = 18
+          Width = 80
+          Height = 24
+          Hint = 'Focus Mode: No. of Pixels per scan line'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ShowHint = True
+          Text = ' 1000 '
+          Value = 1000.000000000000000000
+          Scale = 1.000000000000000000
+          NumberFormat = '%.0f'
+          LoLimit = 10.000000000000000000
+          HiLimit = 30000.000000000000000000
+        end
+        object edFocusModeFrameHeight: TValidatedEdit
+          Left = 144
+          Top = 45
+          Width = 80
+          Height = 24
+          Hint = 'Focus Mode: No. of scan lines per image'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ShowHint = True
+          Text = ' 500 '
+          Value = 500.000000000000000000
+          Scale = 1.000000000000000000
+          NumberFormat = '%.0f'
+          LoLimit = 10.000000000000000000
+          HiLimit = 30000.000000000000000000
+        end
+        object edFocusModeRegion: TValidatedEdit
+          Left = 144
+          Top = 72
+          Width = 80
+          Height = 24
+          Hint = 'Percentage of imaging area scanned while focussing'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ShowHint = True
+          Text = ' 10 %'
+          Value = 0.100000001490116100
+          Scale = 100.000000000000000000
+          Units = '%'
+          NumberFormat = '%.0f'
+          LoLimit = 0.009999999776482582
+          HiLimit = 1.000000000000000000
+        end
+      end
     end
     object PMTTab: TTabSheet
       Caption = 'PM Tubes'
       ImageIndex = 1
       object PMTgrp: TGroupBox
-        Left = 8
-        Top = 10
-        Width = 230
-        Height = 235
+        Left = 3
+        Top = 3
+        Width = 326
+        Height = 286
+        DefaultHeaderFont = False
+        HeaderFont.Charset = DEFAULT_CHARSET
+        HeaderFont.Color = clWindowText
+        HeaderFont.Height = -13
+        HeaderFont.Name = 'Tahoma'
+        HeaderFont.Style = []
         TabOrder = 0
         object Label2: TLabel
-          Left = 20
+          Left = 24
           Top = 17
-          Width = 103
-          Height = 13
+          Width = 123
+          Height = 16
           Alignment = taRightJustify
           Caption = 'No. of PMTs available'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label18: TLabel
-          Left = 74
-          Top = 201
-          Width = 49
-          Height = 13
+          Left = 88
+          Top = 225
+          Width = 59
+          Height = 16
           Alignment = taRightJustify
           Caption = 'Black level'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label19: TLabel
-          Left = 20
-          Top = 44
-          Width = 103
-          Height = 13
+          Left = 24
+          Top = 60
+          Width = 124
+          Height = 16
           Alignment = taRightJustify
           Caption = 'PMT0 Voltage Control'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label20: TLabel
-          Left = 20
-          Top = 71
-          Width = 103
-          Height = 13
+          Left = 23
+          Top = 87
+          Width = 124
+          Height = 16
           Alignment = taRightJustify
           Caption = 'PMT1 Voltage Control'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label21: TLabel
-          Left = 20
-          Top = 98
-          Width = 103
-          Height = 13
+          Left = 23
+          Top = 114
+          Width = 124
+          Height = 16
           Alignment = taRightJustify
           Caption = 'PMT2 Voltage Control'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label22: TLabel
-          Left = 20
-          Top = 125
-          Width = 103
-          Height = 13
+          Left = 23
+          Top = 141
+          Width = 124
+          Height = 16
           Alignment = taRightJustify
           Caption = 'PMT3 Voltage Control'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object Label23: TLabel
-          Left = 19
-          Top = 152
-          Width = 104
-          Height = 13
+          Left = 25
+          Top = 168
+          Width = 122
+          Height = 16
           Alignment = taRightJustify
           Caption = 'PMT voltage at 100%'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object Label48: TLabel
+          Left = 250
+          Top = 44
+          Width = 58
+          Height = 16
+          Caption = 'Invert O/P'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
         object edNumPMTs: TValidatedEdit
-          Left = 130
+          Left = 154
           Top = 17
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 1 '
           Value = 1.000000000000000000
           Scale = 1.000000000000000000
@@ -382,21 +820,32 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 4.000000000000000000
         end
         object ckInvertPMTsignal: TCheckBox
-          Left = 111
-          Top = 180
-          Width = 108
+          Left = 112
+          Top = 196
+          Width = 131
           Height = 15
           Alignment = taLeftJustify
           Caption = 'Invert PMT signal'
           Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           State = cbChecked
           TabOrder = 1
         end
         object edBlackLevel: TValidatedEdit
-          Left = 130
-          Top = 201
+          Left = 154
+          Top = 225
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 10 '
           Value = 10.000000000000000000
           Scale = 1.000000000000000000
@@ -405,42 +854,71 @@ object SettingsFrm: TSettingsFrm
           HiLimit = 32767.000000000000000000
         end
         object cbPMTControl0: TComboBox
-          Left = 130
-          Top = 44
+          Left = 154
+          Top = 60
           Width = 90
-          Height = 21
+          Height = 24
           Style = csDropDownList
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           TabOrder = 3
         end
         object cbPMTControl1: TComboBox
-          Left = 130
-          Top = 71
+          Left = 154
+          Top = 87
           Width = 90
-          Height = 21
+          Height = 24
           Style = csDropDownList
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           TabOrder = 4
         end
         object cbPMTControl2: TComboBox
-          Left = 130
-          Top = 98
+          Left = 154
+          Top = 114
           Width = 90
-          Height = 21
+          Height = 24
           Style = csDropDownList
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           TabOrder = 5
         end
         object cbPMTControl3: TComboBox
-          Left = 130
-          Top = 125
+          Left = 154
+          Top = 141
           Width = 90
-          Height = 21
+          Height = 24
           Style = csDropDownList
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           TabOrder = 6
         end
         object edPMTMaxVolts: TValidatedEdit
-          Left = 130
-          Top = 152
+          Left = 154
+          Top = 168
           Width = 90
-          Height = 21
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
           Text = ' 5 V'
           Value = 5.000000000000000000
           Scale = 1.000000000000000000
@@ -448,6 +926,82 @@ object SettingsFrm: TSettingsFrm
           NumberFormat = '%.4g'
           LoLimit = -1.000000015047466E30
           HiLimit = 10.000000000000000000
+        end
+        object ckPMT0InvertSignal: TCheckBox
+          Left = 248
+          Top = 65
+          Width = 23
+          Height = 15
+          Hint = 'Invert PMT0 output signal'
+          Alignment = taLeftJustify
+          Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          State = cbChecked
+          TabOrder = 8
+        end
+        object ckPMT1InvertSignal: TCheckBox
+          Left = 248
+          Top = 90
+          Width = 23
+          Height = 15
+          Hint = 'Invert PMT1 output signal'
+          Alignment = taLeftJustify
+          Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          State = cbChecked
+          TabOrder = 9
+        end
+        object ckPMT2InvertSignal: TCheckBox
+          Left = 248
+          Top = 118
+          Width = 23
+          Height = 15
+          Hint = 'Invert PMT2 output signal'
+          Alignment = taLeftJustify
+          Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          State = cbChecked
+          TabOrder = 10
+        end
+        object ckPMT3InvertSignal: TCheckBox
+          Left = 248
+          Top = 144
+          Width = 23
+          Height = 15
+          Hint = 'Invert PMT3 output signal'
+          Alignment = taLeftJustify
+          Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          ParentShowHint = False
+          ShowHint = True
+          State = cbChecked
+          TabOrder = 11
         end
       end
     end
@@ -981,7 +1535,6 @@ object SettingsFrm: TSettingsFrm
         Top = 10
         Width = 230
         Height = 191
-        Caption = ' Z position Control'
         TabOrder = 0
         object Label8: TLabel
           Left = 56

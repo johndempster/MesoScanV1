@@ -38,6 +38,7 @@ unit LabIOUnit;
 // 20.01.19 JD .... Task handles now defined as NativeInt to make compatible with 64 bit version 20.X of NIDAQmx
 // 22.01.10 JD .... Pseudo_diff analog input config now selected if device only supports that
 //                  Input voltage ranges greater than +/-10V excluded from list of available input voltage ranges
+// 30.06.25 JD .... .MemoryToDAC() AO channels now correctly set from AOList instead of always 0,1,..
 
 interface
 
@@ -654,6 +655,8 @@ begin
 
     // Update DAC default output state
     DACOutState[Device,iChannel] := DACVolts ;
+
+    outputdebugstring(pchar(format('Dev%d:AO%d = %.3fV',[Device,iCHannel,DACVolts])));
 
     case FNIDAQAPI of
         NIDAQMX : NIDAQMX_WriteDAC( Device,
@@ -1888,7 +1891,7 @@ begin
      ChannelList := '' ;
      for i := 0 to nChannels-1 do
          begin
-         ChannelList := ChannelList + DeviceName[Device]  + '/AO' + format('%d',[i]) ;
+         ChannelList := ChannelList + DeviceName[Device]  + '/AO' + format('%d',[AOList[i]]) ;
          if i < (nChannels-1) then ChannelList := ChannelList + ',';
          end;
 

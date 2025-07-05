@@ -1,7 +1,7 @@
 object MainFrm: TMainFrm
   Left = 794
   Top = 357
-  Caption = 'MesoScan V1.6.9 64 bit 20/1/20'
+  Caption = 'peat'
   ClientHeight = 1122
   ClientWidth = 828
   Color = clBlack
@@ -23,15 +23,15 @@ object MainFrm: TMainFrm
     Left = 8
     Top = 0
     Width = 297
-    Height = 97
+    Height = 118
     Caption = ' Scan Control '
     Color = clGray
     ParentBackground = False
     ParentColor = False
     TabOrder = 0
     object bScanImage: TButton
-      Left = 58
-      Top = 40
+      Left = 56
+      Top = 64
       Width = 110
       Height = 20
       Hint = 'Scan new image'
@@ -48,8 +48,8 @@ object MainFrm: TMainFrm
       OnClick = bScanImageClick
     end
     object bStopScan: TButton
-      Left = 58
-      Top = 63
+      Left = 56
+      Top = 87
       Width = 110
       Height = 20
       Hint = 'Stop scanning'
@@ -66,8 +66,8 @@ object MainFrm: TMainFrm
       OnClick = bStopScanClick
     end
     object ckRepeat: TCheckBox
-      Left = 220
-      Top = 28
+      Left = 218
+      Top = 52
       Width = 65
       Height = 17
       Hint = 'Repeated image scanning'
@@ -83,8 +83,8 @@ object MainFrm: TMainFrm
       TabOrder = 2
     end
     object rbFastScan: TRadioButton
-      Left = 220
-      Top = 10
+      Left = 218
+      Top = 34
       Width = 100
       Height = 17
       Hint = 'High speed image'
@@ -103,8 +103,8 @@ object MainFrm: TMainFrm
       OnClick = rbFastScanClick
     end
     object rbHRScan: TRadioButton
-      Left = 220
-      Top = 55
+      Left = 218
+      Top = 79
       Width = 100
       Height = 17
       Hint = 'High resolution image'
@@ -122,7 +122,7 @@ object MainFrm: TMainFrm
     end
     object bScanZoomOut: TButton
       Left = 15
-      Top = 40
+      Top = 64
       Width = 35
       Height = 20
       Hint = 'Zoom Out: Scan Image using previous ROI '
@@ -139,8 +139,8 @@ object MainFrm: TMainFrm
       OnClick = bScanZoomOutClick
     end
     object bScanZoomIn: TButton
-      Left = 175
-      Top = 40
+      Left = 173
+      Top = 64
       Width = 35
       Height = 20
       Hint = 'Zoom In: Scan image within user selected region of interest.'
@@ -157,8 +157,8 @@ object MainFrm: TMainFrm
       OnClick = bScanZoomInClick
     end
     object bScanFull: TButton
-      Left = 58
-      Top = 16
+      Left = 56
+      Top = 40
       Width = 110
       Height = 20
       Hint = 'Scan full field of view'
@@ -173,6 +173,24 @@ object MainFrm: TMainFrm
       ShowHint = True
       TabOrder = 7
       OnClick = bScanFullClick
+    end
+    object bFocusScan: TButton
+      Left = 56
+      Top = 14
+      Width = 110
+      Height = 20
+      Hint = 'Scan full field of view'
+      Caption = 'Focus Mode'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Arial'
+      Font.Style = [fsBold]
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 8
+      OnClick = bFocusScanClick
     end
   end
   object ImageGrp: TGroupBox
@@ -342,7 +360,7 @@ object MainFrm: TMainFrm
   end
   object ImageSizeGrp: TGroupBox
     Left = 8
-    Top = 102
+    Top = 124
     Width = 297
     Height = 222
     Caption = ' Image '

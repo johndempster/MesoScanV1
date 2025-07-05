@@ -29,6 +29,7 @@ unit ZStageUnit;
 //                 Upper limit of Z dial steps set to 250 um.
 // V1.8.2 03.03.25 PriorSendCommand() and PriorReadReply() added to directly send commands to Rior stages
 //                 Only COM that exist are now listed
+// 27.06.25 Piezo AO port now listed and selected from LABIO.Resource list.
 
 
 
@@ -249,14 +250,10 @@ begin
         stOptiscanII,stProScanIII : begin
           // COM ports
           List.Assign( GetAvailableComPorts ) ;
-//          for i := 1 to 16 do List.Add(format('COM%d',[i]));
           end ;
         stPiezo : begin
           // Analog outputs
-          for iDev := 1 to LabIO.NumDevices do
-              for i := 0 to LabIO.NumDACs[iDev]-1 do begin
-                List.Add(Format('Dev%d:AO%d',[iDev,i])) ;
-                end;
+          LabIO.GetAOPorts( List ) ;
           end;
         else begin
           List.Add('None');
@@ -805,16 +802,13 @@ begin
 
     ZPosition := Position ;
 
-    iPort := 0 ;
-    for iDev := 1 to LabIO.NumDevices do
-        for iChan := 0 to LabIO.NumDACs[iDev]-1 do
-            begin
-            if iPort = FControlPort then
-               begin
-               LabIO.WriteDAC(iDev,Position*ZScaleFactor,iChan);
-               end;
-            inc(iPort) ;
-            end;
+    if LabIO.Resource[FControlPort].ResourceType  <> DACOut then Exit ;
+
+    // Write to DAC port
+    iDev := LabIO.Resource[FControlPort].Device ;
+    iChan := LabIO.Resource[FControlPort].StartChannel ;
+    LabIO.WriteDAC(iDev,Position*ZScaleFactor,iChan);
+
     end ;
 
 
