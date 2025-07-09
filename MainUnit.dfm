@@ -179,7 +179,7 @@ object MainFrm: TMainFrm
       Top = 14
       Width = 110
       Height = 20
-      Hint = 'Scan full field of view'
+      Hint = ' Initiate focus mode scan'
       Caption = 'Focus Mode'
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText

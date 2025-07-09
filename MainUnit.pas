@@ -73,6 +73,8 @@ unit MainUnit;
 // V1.8.3 05.07.25 XGalvOAO XGalvoInvert YGalvOAO YGalvoInvert added to settings
 //                 Each PMT signal channel can now be inverted individually
 //                 Focus Mode option added showing fast scan of centre of image
+// V1.8.4 09.07.25 LabIO updated to fix PMT gains beings stuck on X1
+//
 
 interface
 
@@ -621,13 +623,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.8.3 ';
+     Caption := 'MesoScan V1.8.4 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 05/07/25';
+    Caption := Caption + ' 09/07/25';
      TempBuf := Nil ;
      DeviceNum := 1 ;
      LabIO.NIDAQAPI := NIDAQMX ;
@@ -1862,6 +1864,7 @@ begin
     bScanZoomIn.Enabled := False ;
     bScanZoomOut.Enabled := False ;
     bScanFull.Enabled := False ;
+    bFocusScan.Enabled := False ;
 
     // Turn off repeat scan if in high resolution mode
     if rbHRScan.Checked then ckRepeat.Checked := False ;
@@ -1896,7 +1899,6 @@ begin
              ckRepeat.Checked := True ;
              rbHRScan.Checked := False ;
              rbFastScan.Checked := True ;
-
           end ;
 
 
@@ -2033,9 +2035,11 @@ procedure TMainFrm.StartScan ;
 // ---------------
 var
     i,nSamples : Integer ;
-    PMTInUse : Array[0..MaxPMT] of Boolean ;
-    PMTGain : Array[0..MaxPMT] of Integer ;
-    AOList : Array[0..1] of Integer ;
+    PMTInUse : Array[0..MaxPMT] of Boolean ;   // PMTs in use
+    PMTGain : Array[0..MaxPMT] of Integer ;    // PMT gains
+    AOList : Array[0..1] of Integer ;          // List of AO channels in use
+    AIList : Array[0..MaxPMT] of Integer ;          // List of AI channels in use
+    AIVoltageRange : Array[0..MaxPMT] of Integer ;          // List of AI channels in use
     DACDev : Integer ;
 begin
     // Stop A/D & D/A
@@ -2079,13 +2083,22 @@ begin
     PMTGain[3] := cbPMTGain3.ItemIndex ;
     SetAllPMTVoltages ;
 
-    // Set A/D value inversion for AI channels associated with PMTs
+    // Set channel #, voltage rnage and A/D value inversion for AI channels associated with PMTs
 
     NumPMTChannels := 0 ;
     for i := 0 to NumPMTs-1 do if PMTInUse[i] then
         begin
+
+        // AI channel associated with this PMT
+        AIList[NumPMTChannels] := i ;
+
+        // AI voltage range associated with this PMT
+        AIVoltageRange[NumPMTChannels] := PMTGain[i] ;
+
+        // Inversion AI signal required
         if PMTInvertSignal[i] then InvertADCValue[NumPMTChannels] := -1
                               else InvertADCValue[NumPMTChannels] := 1 ;
+
         Inc(NumPMTChannels) ;
         end;
 
@@ -2103,7 +2116,7 @@ begin
     // Start A/D capture of PMT signals (timed by D/A updates)
     // -------------------------------------------------------
     nSamples := Max(Round(10.0/PixelDwellTime) div NumXPixels,1)*NumXPixels ;
-    LabIO.ADCToMemoryExtScan( DeviceNum,PMTInUse,PMTGain,PMTList,NumPMTChannels,NumXPixels*NumYPixels,False,DeviceNum ) ;
+    LabIO.ADCToMemoryExtScan( DeviceNum,AIList,AIVoltageRange,NumPMTChannels,NumXPixels*NumYPixels,False,DeviceNum ) ;
 
     // Start D/A waveform generation
     // -----------------------------
@@ -2683,19 +2696,18 @@ procedure TMainFrm.bStopScanClick(Sender: TObject);
 //    FileHandle : Integer ;
 begin
 
-//    FileHandle := FileCreate(  'ADC.DAT' ) ;
-//    FileWrite( FileHandle, TempBuf^, (ADCPointer-1)*2 ) ;
-//    FileCLose( FileHandle ) ;
-//    FreeMem(TempBuf) ;
- //   TempBuf := Nil ;
     if LabIO.ADCActive[DeviceNum] then LabIO.StopADC(DeviceNum) ;
     if LabIO.DACActive[DeviceNum] then LabIO.StopDAC(DeviceNum) ;
+
+    // Centre X/Y galvos
     LabIO.WriteDACs( DeviceNum,[0.0,0.0],2);
+
     // Turn off voltage to PMTs
     SetPMTVoltage( 0, 0.0 ) ;
     SetPMTVoltage( 1, 0.0 ) ;
     SetPMTVoltage( 2, 0.0 ) ;
     SetPMTVoltage( 3, 0.0 ) ;
+
     if AvgBuf <> Nil then
       begin
       FreeMem(AvgBuf) ;
@@ -2706,11 +2718,16 @@ begin
       FreeMem(DACBuf) ;
       DACBuf := Nil ;
       end;
+
+    // Re-enable scan buttons
+
     bStopScan.Enabled := False ;
     bScanImage.Enabled := True ;
     bScanZoomIn.Enabled := True ;
     bScanZoomOut.Enabled := True ;
     bScanFull.Enabled := True ;
+    bFocusScan.Enabled := True ;
+
     ScanRequested := 0 ;
     ScanningInProgress := False ;
     LinesAvailableForDisplay := 0 ;
@@ -2728,6 +2745,7 @@ begin
          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStartingPosition );
          end;
     end;
+
     end;
 
 procedure TMainFrm.bZoomInClick(Sender: TObject);

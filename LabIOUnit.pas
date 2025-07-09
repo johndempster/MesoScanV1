@@ -39,6 +39,8 @@ unit LabIOUnit;
 // 22.01.10 JD .... Pseudo_diff analog input config now selected if device only supports that
 //                  Input voltage ranges greater than +/-10V excluded from list of available input voltage ranges
 // 30.06.25 JD .... .MemoryToDAC() AO channels now correctly set from AOList instead of always 0,1,..
+// 09.07.25 JD .... .ADCToMemoryExt() updated Now uses AIList & AIVoltageRange to define AI channels and voltage ranges to use
+//
 
 interface
 
@@ -292,11 +294,10 @@ type
     procedure CheckError( Err : Integer ) ;
 
     function ADCToMemoryExtScan(
-          Device : SmallInt ;
-          ChannelInUse : Array of Boolean ;          // Channels to be used (IN)
-          ChannelVoltageRange : Array of Integer ;   // Index number of channel A/D voltage range
-          var ChannelNums : Array of Integer ;       // Returns channel nos. in use
-          var nChannels : Integer ;                  // Return number of A/D channels
+          Device : SmallInt ;                      // AI Device (IN)
+          AIList : Array of Integer ;              // AI input channel # list (IN)
+          AIVoltageRange : Array of Integer ;      // AI inputchannel voltage rnage (IN)
+          nChannels : Integer ;                  // Return number of A/D channels
           nSamples : Integer ;               { Number of A/D samples ( per channel) (IN) }
           CircularBuffer : Boolean ;          { Repeated sampling into buffer (IN) }
           TimingDevice : SmallInt            // Device supply ADC/DAC timing pulses
@@ -1378,10 +1379,9 @@ begin
 
 function TLabIO.ADCToMemoryExtScan(
           Device : SmallInt ;
-          ChannelInUse : Array of Boolean ;      // Channels to be used (IN)
-          ChannelVoltageRange : Array of Integer ;   // Index number of channel A/D voltage range
-          var ChannelNums : Array of Integer ;   // Returns channel nos. in use
-          var nChannels : Integer ;              // Return number of A/D channels
+          AIList : Array of Integer ;              // AI input channel # list (IN)
+          AIVoltageRange : Array of Integer ;      // AI inputchannel voltage rnage (IN)
+          nChannels : Integer ;                    // Number of A/D channels recorded
           nSamples : Integer ;                   // Number of A/D samples ( per channel) (IN)
           CircularBuffer : Boolean ;             // Repeated sampling into buffer (IN) }
           TimingDevice : SmallInt                // Device supply ADC/DAC timing pulses
@@ -1392,12 +1392,13 @@ function TLabIO.ADCToMemoryExtScan(
 var
    ChannelList,ChannelName : ANSIString ;
    ClockSource : ANSIString ;
-   ch : Integer ;
+   ch,AIch : Integer ;
    SampleMode : Integer ;
    SamplingRate,MaxSamplingRate : Double ;
    IsSimultaneousSamplingADC : LongBool ;
 begin
 
+     // Exit if no devices
      Result := False ;
      if (Device < 1) or (Device > NumDevices) then Exit ;
      if NumADCs[Device] <= 0 then Exit ;
@@ -1412,34 +1413,26 @@ begin
 
      // Create channe; list
      ChannelList := '' ;
-     nChannels := 0 ;
-     for ch := 0 to High(ChannelInUse) do if ChannelInUse[ch] then
+     for ch := 0 to nChannels-1 do
        begin
-       ChannelNums[nChannels] := ch ;
-       ChannelList := ChannelList + DeviceName[Device] + format('/AI%d,',[ch]);
-       Inc(nChannels) ;
+       AIch := AIList[ch] ;
+       ChannelList := ChannelList + DeviceName[Device] + format('/AI%d,',[AIch]);
        end;
      ChannelList := LeftStr(ChannelList,Length(ChannelList)-1);
 
-     CheckError( DAQmxCreateAIVoltageChan( ADCTask[Device],
-                                           PANSIChar(ChannelList),
-                                           nil ,
+     // Set all channels to max. range
+     CheckError( DAQmxCreateAIVoltageChan( ADCTask[Device],PANSIChar(ChannelList),nil ,
                                            ADCInputModeCode(Device,ADCInputMode),
-                                           -ADCVoltageRanges[Device][0],
-                                           ADCVoltageRanges[Device][0],
-                                           DAQmx_Val_Volts,
-                                           nil));
+                                           -ADCVoltageRanges[Device][0], ADCVoltageRanges[Device][0],
+                                           DAQmx_Val_Volts,nil));
 
-     // Set individual channel voltage range
+     // Set individual channel voltage ranges
      for ch := 0 to nChannels-1 do
          begin
-         ChannelName := DeviceName[Device] + format('/AI%d',[ChannelNums[ch]]) ;
-         CheckError( DAQmxSetAIRngHigh( ADCTask[Device],
-                                        PANSIChar(ChannelName),
-                                        ADCVoltageRanges[Device][ChannelVoltageRange[ch]])) ;
-         CheckError( DAQmxSetAIRngLow( ADCTask[Device],
-                                        PANSIChar(ChannelName),
-                                        -ADCVoltageRanges[Device][ChannelVoltageRange[ch]])) ;
+         AIch := AIList[ch] ;
+         ChannelName := DeviceName[Device] + format('/AI%d',[AIch]) ;
+         CheckError( DAQmxSetAIRngHigh( ADCTask[Device],PANSIChar(ChannelName), ADCVoltageRanges[Device][AIVoltageRange[ch]])) ;
+         CheckError( DAQmxSetAIRngLow(  ADCTask[Device],PANSIChar(ChannelName), -ADCVoltageRanges[Device][AIVoltageRange[ch]])) ;
          end ;
 
      // Select continuous sampling if circular buffer selected
