@@ -729,7 +729,7 @@ object MainFrm: TMainFrm
         Scale = 1.000000000000000000
         Units = '%'
         NumberFormat = '%.0f'
-        LoLimit = -1.000000015047466E30
+        LoLimit = 0.001000000047497451
         HiLimit = 100.000000000000000000
       end
       object ckEnablePMT0: TCheckBox
@@ -817,7 +817,7 @@ object MainFrm: TMainFrm
         Scale = 1.000000000000000000
         Units = '%'
         NumberFormat = '%.0f'
-        LoLimit = -1.000000015047466E30
+        LoLimit = 0.001000000047497451
         HiLimit = 100.000000000000000000
       end
       object ckEnablePMT1: TCheckBox
@@ -903,7 +903,7 @@ object MainFrm: TMainFrm
         Scale = 1.000000000000000000
         Units = '%'
         NumberFormat = '%.0f'
-        LoLimit = -1.000000015047466E30
+        LoLimit = 0.001000000047497451
         HiLimit = 100.000000000000000000
       end
       object ckEnablePMT2: TCheckBox
@@ -973,7 +973,7 @@ object MainFrm: TMainFrm
       end
       object edPMTVolts3: TValidatedEdit
         Left = 108
-        Top = 2
+        Top = 1
         Width = 65
         Height = 24
         Hint = 'PMT voltage (% of maximum)'
@@ -989,7 +989,7 @@ object MainFrm: TMainFrm
         Scale = 1.000000000000000000
         Units = '%'
         NumberFormat = '%.0f'
-        LoLimit = -1.000000015047466E30
+        LoLimit = 0.001000000047497451
         HiLimit = 100.000000000000000000
       end
       object ckEnablePMT3: TCheckBox

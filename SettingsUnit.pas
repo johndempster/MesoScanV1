@@ -269,6 +269,7 @@ begin
     // Laser control
     Laser.GetLaserTypes(cbLaserType.Items);
     Laser.GetCOMPorts( cbLaserControlComPort.Items ) ;
+
     // Set laser control line menus (for external control)
     SetLaser( 0, edLaserName0, cbLaserActiveControl0, cbLaserIntensityControl0, edLaserVMax0 ) ;
     SetLaser( 1, edLaserName1, cbLaserActiveControl1, cbLaserIntensityControl1, edLaserVMax1 ) ;
@@ -278,6 +279,7 @@ begin
     SetLaser( 5, edLaserName5, cbLaserActiveControl5, cbLaserIntensityControl5, edLaserVMax5 ) ;
     SetLaser( 6, edLaserName6, cbLaserActiveControl6, cbLaserIntensityControl6, edLaserVMax6 ) ;
     SetLaser( 7, edLaserName7, cbLaserActiveControl7, cbLaserIntensityControl7, edLaserVMax7 ) ;
+
     // Z stage control
     ZStage.GetZStageTypes(cbZStageType.Items);
     cbZStageType.ItemIndex := Min(Max(ZStage.StageType,0),cbZStageType.Items.Count-1) ;
@@ -289,9 +291,11 @@ begin
     edZPositionMin.Value := ZStage.ZPositionMin ;
     edZPositionMax.Value := ZStage.ZPositionMax ;
     edStageProtectionTTLTrigger.Value := ZStage.StageProtectionTTLTrigger ;
+
     // Z rotational encoder dial
     ZStage.GetZDialADCInputs( cbZDialADCInputs.Items ) ;
     cbZDialADCInputs.ItemIndex := cbZDialADCInputs.Items.IndexOfObject(Tobject(ZStage.ZDialADCInputs)) ;
+
     edZDialMicronsPerStepCoarse.Value := ZStage.ZDialMicronsPerStepCoarse ;
     edZDialMicronsPerStepFine.Value := ZStage.ZDialMicronsPerStepFine ;
     edImageJPath.Text := MainFrm.ImageJPath ;
@@ -424,6 +428,7 @@ begin
     mePriorReply.Lines.Add( s ) ;
 end;
 
+
 procedure TSettingsFrm.cbZStagePortChange(Sender: TObject);
 // ----------------
 // COM port changed
@@ -431,6 +436,7 @@ procedure TSettingsFrm.cbZStagePortChange(Sender: TObject);
 begin
     ZStage.ControlPort := Integer( cbZStagePort.Items.Objects[cbZStagePort.ItemIndex] ) ;
 end;
+
 
 procedure TSettingsFrm.cbZStageTypeChange(Sender: TObject);
 //
@@ -443,6 +449,8 @@ begin
     edZScaleFactor.Units := ZStage.ScaleFactorUnits ;
     edZScaleFactor.Value := ZStage.ZScaleFactor ;
     end;
+
+
 procedure TSettingsFrm.SetLaser(
           iLaser : Integer ;                  // Laser #
           edName : TEdit ;                   // Laser name

@@ -30,6 +30,7 @@ unit ZStageUnit;
 // V1.8.2 03.03.25 PriorSendCommand() and PriorReadReply() added to directly send commands to Rior stages
 //                 Only COM that exist are now listed
 // 27.06.25 Piezo AO port now listed and selected from LABIO.Resource list.
+// 05.01.26 GetZDialADCInputs(), GetControlPorts() Dev1 (main ADC & galvo control) removed from list to avoid conflicts
 
 
 
@@ -254,6 +255,9 @@ begin
         stPiezo : begin
           // Analog outputs
           LabIO.GetAOPorts( List ) ;
+          // Remove Dev1 (XY galvo control) from list to avoid conflict
+          List.Delete(List.IndexOf('Dev1:AO0')) ;
+          List.Delete(List.IndexOf('Dev1:AO1')) ;
           end;
         else begin
           List.Add('None');
@@ -268,6 +272,9 @@ procedure TZStage.GetZDialADCInputs( List : TStrings ) ;
 // --------------------------------------
 begin
      LabIO.GetAIPorts( List ) ;
+    // Remove Dev1 (PMT ADC) from list to avoid conflict
+    List.Delete(List.IndexOf('Dev1:AI0')) ;
+
 end;
 
 
@@ -861,10 +868,7 @@ begin
       // AI0=Encoder A, AI1=Encoder B, AI2=Coarse/fine switch
       // Sampling at 3.3kHz per channel to ensure pulses detected correctly when dial rotated quickly
 
-      LabIO.ADCToMemory( LabIO.Resource[ZDialADCInputs].Device,
-                         ZDialNumADCChannels,
-                         ZDialMaxADCPoints,
-                         3E-4, True) ;
+      LabIO.ADCToMemory( LabIO.Resource[ZDialADCInputs].Device,ZDialNumADCChannels,ZDialMaxADCPoints,3E-4, True) ;
 
       ZDialAvailable := True ;
       A_State := False ;

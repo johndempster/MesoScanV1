@@ -74,6 +74,8 @@ unit MainUnit;
 //                 Each PMT signal channel can now be inverted individually
 //                 Focus Mode option added showing fast scan of centre of image
 // V1.8.4 09.07.25 LabIO updated to fix PMT gains beings stuck on X1
+// V1.8.5 11.07.25 PMT % Volts Up/Down arrows now limited to 0.001 -> 100% range.
+// V1.8.6 05.01.26 ZStageUnit: GetZDialADCInputs(), GetControlPorts() Dev1 (main ADC & galvo control) removed from list to avoid conflicts
 //
 
 interface
@@ -623,13 +625,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.8.4 ';
+     Caption := 'MesoScan V1.8.6 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 09/07/25';
+    Caption := Caption + ' 01/06/26';
      TempBuf := Nil ;
      DeviceNum := 1 ;
      LabIO.NIDAQAPI := NIDAQMX ;
@@ -2185,6 +2187,7 @@ var
 begin
       GreyLo[ImagePage.ActivePageIndex] := Round(plHistogram.VerticalCursors[HistogramCursorLo]) ;
       GreyHi[ImagePage.ActivePageIndex] := Round(plHistogram.VerticalCursors[HistogramCursorHi]) ;
+
       // Swap if lo cursor > hi cursor
       if GreyLo[ImagePage.ActivePageIndex] > GreyHi[ImagePage.ActivePageIndex] then
          begin
@@ -2192,14 +2195,18 @@ begin
          GreyLo[ImagePage.ActivePageIndex] := GreyHi[ImagePage.ActivePageIndex] ;
          GreyHi[ImagePage.ActivePageIndex] := Temp ;
          end;
+
      // Ensure a non-zero LUT range
         if GreyLo[ImagePage.ActivePageIndex] = GreyHi[ImagePage.ActivePageIndex] then
            begin
            GreyLo[ImagePage.ActivePageIndex] := GreyLo[ImagePage.ActivePageIndex] - 1 ;
            GreyHi[ImagePage.ActivePageIndex] := GreyHi[ImagePage.ActivePageIndex] + 1 ;
            end ;
+
      UpdateLUT(ImagePage.ActivePageIndex, ADCMaxValue ) ;
      SetDisplayIntensityRange( GreyLo[ImagePage.ActivePageIndex], GreyHi[ImagePage.ActivePageIndex] ) ;
+
+     UpdateDisplay := True ;
 end;
 
 
@@ -2427,7 +2434,7 @@ begin
     //
     // Z stage rotary control dial
     //
-    if ZStage.ZDialAvailable then
+    if {ZStage.ZDialAvailable} false then
        begin
        ZStepsPending := ZStage.GetZDialRotation + ZStepsPending ;
        if (ZStepsPending <> 0.0) and (not ZStage.Moving) and (ZDialWaitCount <= 0) then
@@ -2479,33 +2486,48 @@ end;
 
 procedure TMainFrm.udPMTVolts0ChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue: Integer; Direction: TUpDownDirection);
+// ---------------------------------
+// PMT0 % VOlts Up/Down arrow changed
+// ---------------------------------
 begin
-    if Direction = updUp then edPMTVolts0.Value := edPMTVolts0.Value + 1.0
-                         else edPMTVolts0.Value := edPMTVolts0.Value - 1.0 ;
+    if Direction = updUp then edPMTVolts0.Value := Min(edPMTVolts0.Value + 1.0,100.0)
+                         else edPMTVolts0.Value := Max(edPMTVolts0.Value - 1.0,0.001) ;
     SetAllPMTVoltages ;
     end;
+
 
 procedure TMainFrm.udPMTVolts1ChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue: Integer; Direction: TUpDownDirection);
+// ---------------------------------
+// PMT1 % VOlts Up/Down arrow changed
+// ---------------------------------
 begin
-    if Direction = updUp then edPMTVolts1.Value := edPMTVolts1.Value + 1.0
-                         else edPMTVolts1.Value := edPMTVolts1.Value - 1.0 ;
+    if Direction = updUp then edPMTVolts1.Value := Min(edPMTVolts1.Value + 1.0,100.0)
+                         else edPMTVolts1.Value := Max(edPMTVolts1.Value - 1.0,0.001) ;
     SetAllPMTVoltages ;
     end;
+
 
 procedure TMainFrm.udPMTVolts2ChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue: Integer; Direction: TUpDownDirection);
+// ---------------------------------
+// PMT2 % VOlts Up/Down arrow changed
+// ---------------------------------
 begin
-    if Direction = updUp then edPMTVolts2.Value := edPMTVolts2.Value + 1.0
-                         else edPMTVolts2.Value := edPMTVolts2.Value - 1.0 ;
+    if Direction = updUp then edPMTVolts2.Value := Min(edPMTVolts2.Value + 1.0,100.0)
+                         else edPMTVolts2.Value := Max(edPMTVolts2.Value - 1.0,0.001) ;
     SetAllPMTVoltages ;
     end;
 
+
 procedure TMainFrm.udPMTVolts3ChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue: Integer; Direction: TUpDownDirection);
+// ---------------------------------
+// PMT3 % VOlts Up/Down arrow changed
+// ---------------------------------
 begin
-    if Direction = updUp then edPMTVolts3.Value := edPMTVolts3.Value + 1.0
-                         else edPMTVolts3.Value := edPMTVolts3.Value - 1.0 ;
+    if Direction = updUp then edPMTVolts3.Value := Min(edPMTVolts3.Value + 1.0,100.0)
+                         else edPMTVolts3.Value := Max(edPMTVolts3.Value - 1.0,0.001) ;
     SetAllPMTVoltages ;
     end;
 
