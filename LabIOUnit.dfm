@@ -1,5 +1,6 @@
 object LabIO: TLabIO
   OnCreate = DataModuleCreate
-  Height = 480
-  Width = 696
+  Height = 600
+  Width = 870
+  PixelsPerInch = 120
 end

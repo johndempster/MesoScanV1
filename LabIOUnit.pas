@@ -1380,7 +1380,7 @@ begin
 function TLabIO.ADCToMemoryExtScan(
           Device : SmallInt ;
           AIList : Array of Integer ;              // AI input channel # list (IN)
-          AIVoltageRange : Array of Integer ;      // AI inputchannel voltage rnage (IN)
+          AIVoltageRange : Array of Integer ;      // AI inputchannel voltage range (IN)
           nChannels : Integer ;                    // Number of A/D channels recorded
           nSamples : Integer ;                   // Number of A/D samples ( per channel) (IN)
           CircularBuffer : Boolean ;             // Repeated sampling into buffer (IN) }
@@ -1433,6 +1433,7 @@ begin
          ChannelName := DeviceName[Device] + format('/AI%d',[AIch]) ;
          CheckError( DAQmxSetAIRngHigh( ADCTask[Device],PANSIChar(ChannelName), ADCVoltageRanges[Device][AIVoltageRange[ch]])) ;
          CheckError( DAQmxSetAIRngLow(  ADCTask[Device],PANSIChar(ChannelName), -ADCVoltageRanges[Device][AIVoltageRange[ch]])) ;
+         outputdebugstring(pchar(format('Ch.%d, %s, VRange=%6.2f',[ch,ChannelName,ADCVoltageRanges[Device][AIVoltageRange[ch]]])));
          end ;
 
      // Select continuous sampling if circular buffer selected

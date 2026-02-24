@@ -672,16 +672,24 @@ begin
      cbPalette.Items.AddObject(' Green scale', TObject(palGreen)) ;
      cbPalette.Items.AddObject(' Blue scale', TObject(palBlue)) ;
      cbPalette.ItemIndex := cbPalette.Items.IndexOfObject(TObject(MainFrm.PaletteType)) ;
+
      // PMT controls
+
+     // A/D input channel gain to be used with PMT
+
      cbPMTGain0.Clear ;
-     for i := 0 to LabIO.NumADCVoltageRanges[DeviceNum]-1 do begin
+     for i := 0 to LabIO.NumADCVoltageRanges[DeviceNum]-1 do
+         begin
          Gain := LabIO.ADCVoltageRanges[DeviceNum,0] /
                  LabIO.ADCVoltageRanges[DeviceNum,i] ;
          cbPMTGain0.Items.Add(format('X%.4g',[Gain]));
          end ;
-     if cbPMTGain0.Items.Count <= 0 then begin
+
+     if cbPMTGain0.Items.Count <= 0 then
+        begin
         cbPMTGain0.Items.Add('n/a');
         end;
+
      cbPMTGain1.Items.Assign(cbPMTGain0.Items);
      cbPMTGain2.Items.Assign(cbPMTGain0.Items);
      cbPMTGain3.Items.Assign(cbPMTGain0.Items);
@@ -689,18 +697,22 @@ begin
      cbPMTGain1.ItemIndex := 0 ;
      cbPMTGain2.ItemIndex := 0 ;
      cbPMTGain3.ItemIndex := 0 ;
+
+     // PMT gain (as fraction of
      for i := 0 to High(PMTControls) do PMTControls[i] := -1 ;
      edPMTVolts0.Value := 1.0 ;
      edPMTVolts1.Value := 1.0 ;
      edPMTVolts2.Value := 1.0 ;
      edPMTVolts3.Value := 1.0 ;
-     PMTMaxVolts := 5.0 ;
-     for i := 0 to High(PMTINvertSignal) do PMTINvertSignal[i] := False ;
+     PMTMaxVolts := 1.0 ;
 
+     // Invert PMT voltage signal
+     for i := 0 to High(PMTINvertSignal) do PMTInvertSignal[i] := False ;
 
      edDisplayIntensityRange.LoLimit := 0 ;
      edDisplayIntensityRange.HiLimit := ADCMaxValue ;
      bFullScale.Click ;
+
      // Save image file dialog
      SaveDialog.InitialDir := '' ;
      SaveDialog.Title := 'Save Image ' ;
@@ -2557,6 +2569,8 @@ begin
 //       outputdebugstring(pchar(format('ADCBuf start-end = %d, %d, %d, %d',
 //       [ADCBuf^[0],ADCBuf^[1],ADCBuf^[(NumPixels*NumPMTChannels)-2],ADCBuf^[(NumPixels*NumPMTChannels)-1]]))) ;
 
+    outputdebugstring(pchar(format('ADCStart=%d AvgBuf[ADCStart]=%d NumAverages= %d',[ADCStart,AvgBuf^[ADCStart],NumAverages])));
+
     for i := ADCStart to ADCEnd do
         begin
         ADCPointer := i ;
@@ -2581,13 +2595,17 @@ begin
            iPointer := iPointer + Sign(iPointerStep) ;
            pImageBuf[ch]^[iPointer] := y ;
            end ;
+
         end ;
 
     // Copy image to display bitmap
     iLine := ADCPointer div (NumXPixels*NumPMTChannels) ;
     iLine := Max(iLine -1,0) ;
     if not BiDirectionalScan then iLine := iLine div 2 ;
+
     // Increment Z stage in XZ mode
+    // ----------------------------
+
     if cbImageMode.ItemIndex = XZMode then
        begin
        NewZSection := iLine div NumLinesPerZStep ;
