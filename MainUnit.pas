@@ -76,6 +76,8 @@ unit MainUnit;
 // V1.8.4 09.07.25 LabIO updated to fix PMT gains beings stuck on X1
 // V1.8.5 11.07.25 PMT % Volts Up/Down arrows now limited to 0.001 -> 100% range.
 // V1.8.6 05.01.26 ZStageUnit: GetZDialADCInputs(), GetControlPorts() Dev1 (main ADC & galvo control) removed from list to avoid conflicts
+// V1.8.7 03.03.26 PMT A/D Input voltage gains no longer mixed up when lower PMT channels are out of use.
+//                 Possible fix for incorrect avareging of every 2nd image with previous in a stack (to be confirmed)
 //
 
 interface
@@ -625,13 +627,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.8.6 ';
+     Caption := 'MesoScan V1.8.7 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 01/06/26';
+    Caption := Caption + ' 03/03/27';
      TempBuf := Nil ;
      DeviceNum := 1 ;
      LabIO.NIDAQAPI := NIDAQMX ;
@@ -1979,6 +1981,7 @@ begin
              end
           else FrameHeightScale := 1.0 ;
           BidirectionalScan := FastBidirectionalScan ;
+          ckRepeat.Checked := True ;
           end
         else
           begin
@@ -2070,12 +2073,13 @@ begin
 
     if ClearAverage then
        begin
-       // Dispose of existing display buffers and create new ones
+       // Dispose of existing display buffers and create new ones (entries set to zero)
        if AvgBuf <> Nil then FreeMem( AvgBuf ) ;
        AvgBuf := AllocMem( Int64(NumPixels)*Int64(NumPMTChannels)*4 ) ;
-       for i := 0 to NumPixels*NumPMTChannels-1 do AvgBuf^[i] := 0 ;
+//       for i := 0 to NumPixels*NumPMTChannels-1 do AvgBuf^[i] := 0 ;
        ClearAverage := False ;
        NumAverages := 1 ;
+       outputDebugString(pchar('AvgBuf cleared')) ;
        end ;
 
     ADCPointer := 0 ;
@@ -2255,14 +2259,23 @@ begin
      end;
      end;
 
+
 procedure TMainFrm.edGotoZPositionKeyPress(Sender: TObject; var Key: Char);
+// -----------------------------------
+// Go to user-entered Z stage position
+// -----------------------------------
 begin
     if Key = #13 then
         begin
         ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,edGoToZPosition.Value ) ;
         end;
     end;
+
+
 procedure TMainFrm.edLaserIntensityKeyPress(Sender: TObject; var Key: Char);
+// -----------------------------------------
+// Set laser intensity to user-entered value
+// -----------------------------------------
 begin
     if Key = #13 then
        begin
@@ -2270,6 +2283,7 @@ begin
        tbLaserIntensity.Position := Round(10.0*edLaserIntensity.Value) ;
        end;
     end;
+
 
 procedure TMainFrm.edMicronsPerZStepKeyPress(Sender: TObject; var Key: Char);
 // -------------------------
@@ -2284,6 +2298,7 @@ begin
          end;
       end;
 
+
 procedure TMainFrm.edNumPixelsPerZStepKeyPress(Sender: TObject; var Key: Char);
 // -------------------------
 // Pixels per Z step changed
@@ -2295,6 +2310,7 @@ begin
          end;
       end;
 
+
 procedure TMainFrm.edPMTVolts0KeyPress(Sender: TObject; var Key: Char);
 begin
     if Key = #13 then
@@ -2302,6 +2318,8 @@ begin
        SetAllPMTVoltages ;
        end;
     end;
+
+
 procedure TMainFrm.bGotoZPositionClick(Sender: TObject);
 // -------------------------
 // Go to specified Z position
@@ -2309,6 +2327,8 @@ procedure TMainFrm.bGotoZPositionClick(Sender: TObject);
 begin
     ZStage.MoveTo( ZStage.XPosition, ZStage.YPosition, edGoToZPosition.Value ) ;
     end;
+
+
 
 procedure TMainFrm.bMaxContrastClick(Sender: TObject);
 // -------------------------------------------------------------
@@ -2442,7 +2462,9 @@ begin
           PlotHistogram ;
           end ;
        end ;
+
     GetImageFromPMT ;
+
     //
     // Z stage rotary control dial
     //
@@ -2569,12 +2591,12 @@ begin
 //       outputdebugstring(pchar(format('ADCBuf start-end = %d, %d, %d, %d',
 //       [ADCBuf^[0],ADCBuf^[1],ADCBuf^[(NumPixels*NumPMTChannels)-2],ADCBuf^[(NumPixels*NumPMTChannels)-1]]))) ;
 
-    outputdebugstring(pchar(format('ADCStart=%d AvgBuf[ADCStart]=%d NumAverages= %d',[ADCStart,AvgBuf^[ADCStart],NumAverages])));
+    outputdebugstring(pchar(format('Zsection=%d ADCStart=%d NumAverages= %d',[ZSection,ADCStart,NumAverages])));
 
     for i := ADCStart to ADCEnd do
         begin
         ADCPointer := i ;
-        AvgBuf^[i] := AvgBuf^[i] + ADCBuf^[i] {+ random(100)} ;
+        AvgBuf^[i] := AvgBuf^[i] + ADCBuf^[i] {+ random(100)} {+ ZSection*1000} ;
 
         iPix := i div NumPMTChannels ; // Pixel index
         ch := i mod NumPMTChannels ;   // AI channel index
@@ -2639,6 +2661,7 @@ begin
        LinesAvailableForDisplay := iLine ;//FrameHeight ;
        NewZSection := 0 ;
        end;
+
     meStatus.Clear ;
     case cbImageMode.ItemIndex of
        XYMode,XTMode :
@@ -2668,16 +2691,28 @@ begin
     ADCNumNewSamples := 0 ;
     if ADCPointer >= (NumPixels*NumPMTChannels-4) then
        begin
+
+       //
+       // Image scan complete - save to file
+
        if cbImageMode.ItemIndex = XZMode then
           begin
+          //
+          // XZ scanning mode
+          //
           NumAverages := Round(edNumRepeats.Value) + 1 ;
           SaveRawImage( RawImagesFileName, 0 ) ;
           end
        else
           begin
+          //
+          // Other scanning mode - XY, XYZ, XT
+          //
           SaveRawImage( RawImagesFileName, ZSection ) ;
+
           Inc(NumAverages) ;
           Inc(NumRepeats) ;
+
           // If images are to be saved for later averaging increment section number
           // otherwise only increment when averaging completed
           if not ckRepeat.Checked then
@@ -2685,14 +2720,22 @@ begin
              if ckKeepRepeats.Checked then Inc(ZSection)
              else if NumAverages > Round(edNumRepeats.Value) then Inc(ZSection) ;
              end;
+
           end;
-       if NumRepeats <= Round(edNumRepeats.Value) then
+
+       if (NumRepeats <= Round(edNumRepeats.Value)) and (not ckRepeat.Checked) then
           begin
+          //
+          // If more repeats required - do another scan with same settings
+          //
           ScanRequested := 1 ;
           if ckKeepRepeats.Checked then ClearAverage := True ;
           end
        else
           begin
+          //
+          // Averaging complete - move to next Z position ot stop
+          //
           ScanningInProgress := False ;
           if ckRepeat.Checked and (not bScanImage.Enabled) then
              begin

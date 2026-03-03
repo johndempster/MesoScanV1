@@ -104,7 +104,7 @@ object MainFrm: TMainFrm
     end
     object rbHRScan: TRadioButton
       Left = 218
-      Top = 79
+      Top = 72
       Width = 100
       Height = 17
       Hint = 'High resolution image'
