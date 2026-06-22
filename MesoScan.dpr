@@ -1,11 +1,12 @@
 program MesoScan;
 
 uses
-  Winapi.Windows,System.SysUtils,VCL.Dialogs,   { Required for CreateMutex 22.5.24}
+  Winapi.Windows,
+  System.SysUtils,
+  VCL.Dialogs,
   Forms,
   MainUnit in 'MainUnit.pas' {MainFrm},
   nidaqmxlib in 'nidaqmxlib.pas',
-  nidaqlib in 'nidaqlib.pas',
   LabIOUnit in 'LabIOUnit.pas' {LabIO: TDataModule},
   SettingsUnit in 'SettingsUnit.pas' {SettingsFrm},
   ZStageUnit in 'ZStageUnit.pas' {ZStage: TDataModule},

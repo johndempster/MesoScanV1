@@ -78,7 +78,8 @@ unit MainUnit;
 // V1.8.6 05.01.26 ZStageUnit: GetZDialADCInputs(), GetControlPorts() Dev1 (main ADC & galvo control) removed from list to avoid conflicts
 // V1.8.7 03.03.26 PMT A/D Input voltage gains no longer mixed up when lower PMT channels are out of use.
 //                 Possible fix for incorrect avareging of every 2nd image with previous in a stack (to be confirmed)
-//
+// V1.8.8 22.06.26 Averaging during pixel dwell time added
+//                 Z position can now be controlled using Counter multimedia cohtroller dial
 
 interface
 
@@ -102,7 +103,7 @@ const
     GreyLevelLimit = $FFFF ;
     FalseColourPalette = 1 ;
     MaxScanSpeed = 100. ;
-    MinPixelDwellTime = 2E-6 ;
+//    MinPixelDwellTime = 2E-6 ;
     MaxZoomFactors = 100 ;
     XYMode = 0 ;
     XYZMode = 1 ;
@@ -298,6 +299,7 @@ type
     procedure gpPMTColor0Click(Sender: TObject);
     procedure tbZPositionChange(Sender: TObject);
     procedure bFocusScanClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     { Private declarations }
         BitMap : Array[0..MaxPMT] of TBitMap ;  // Image internal bitmaps
@@ -319,11 +321,10 @@ type
     ADCMaxValue : Integer ;
     DACMaxValue : Integer ;
     TempBuf : PBig16bitArray ;
-    DACBuf : PBig16bitArray ;
-    ADCBuf : PBig16bitArray ;
-    AvgBuf : PBig32bitArray ;
-    ADCMap : PBig32bitArray ;
-//    XZLineAverage : PBig32bitArray ;
+    DACBuf : PBig16bitArray ;           // D/A Converter XY scan waveform buffer
+    AvgBuf : PBig32bitArray ;           // PMT signal A/D converter sample buffer
+    ADCMap : PBig32bitArray ;           // AvgBuf -> ImageBuf map
+
     ADCNumNewSamples : Integer ;
     ADCInput : Integer ;             // Selected analog input
     NumXPixels : Cardinal ;
@@ -331,7 +332,7 @@ type
     NumBeamParkLines : Integer ;        // No. of lines at start/end of scan used for beam parking/unparking
     NumPixels : Integer ;
     NumPixelsInDACBuf : Cardinal ;
-//    BufSize : Integer ;
+
     XCentre : Double ;
     XWidth : Double ;
     YCentre : Double ;
@@ -359,7 +360,9 @@ type
     InvertPMTSignal : Boolean ;           // TRUE = PMT signal inverted
     BlackLevel : Integer ;                // Black level of PMT signal
     MaxScanRate : Double ;                // Highest permitted scan rate
-    MinPixelDwellTime : Double ;          // Smallest permitted pixel dwell time
+    MinPixelDwellTime : Double ;          // Smallest permitted pixel dwell time / PMT A/D sampling interval (s)
+    NumIntervalsAveraged : Integer ;      // No. A/D samples averaged per pixel
+    DACUpdateInterval : Double ;          // D/A Converter update interval (s)
 
     XGalvoAO : Integer ;                 // Resource # of AO port controlling X galvo
     YGalvoAO : Integer ;                 // Resource # of AO port controlling Y galvo
@@ -399,7 +402,7 @@ type
     ImageColors : Array[0..MaxPMT] of TColor ;
     //NumPixelsPerFrame : Integer ;
     NumADCChannels : Integer ;
-    PixelDwellTime : Double ;
+    ADCSamplingInterval : Double ;                      // PMT signal A/D sampling rate
     // Laser control
     LaserIntensity : Double ;
     LaserControlEnabled : Boolean ;
@@ -414,8 +417,8 @@ type
     NumLinesPerZStep : Integer ;      // No. lines per Z step in XZ mode
     XZLine : Integer ;                // XZ mode line counter
     ZStartingPosition : Double ;      // Z position at start of scanning
-    ZStepsPending : Double ;          // Z dial steps (um) waiting to be executed
-    ZDialWaitCount : Integer ;        // Z dial wait counter (restricts rate of Z stage updates)
+//    ZStepsPending : Double ;          // Z dial steps (um) waiting to be executed
+//    ZDialWaitCount : Integer ;        // Z dial wait counter (restricts rate of Z stage updates)
     ADCPointer : Integer ;
     EmptyFlag : Integer ;
     UpdateDisplay : Boolean ;
@@ -599,7 +602,6 @@ var
    ch : Integer ;
 begin
      ADCMap := Nil ;
-     ADCBuf := Nil ;
      AvgBuf := Nil ;
      DACBuf := Nil ;
 //     XZLineAverage := Nil ;
@@ -614,8 +616,8 @@ begin
      Image[2] := Image0 ;
      Image[3] := Image0 ;}
      NewZStageTrackbarPosition := False ;
-     ZDialWaitCount := 0 ;
-     ZStepsPending := 0 ;
+//     ZDialWaitCount := 0 ;
+//     ZStepsPending := 0 ;
      end;
 
 procedure TMainFrm.FormShow(Sender: TObject);
@@ -627,13 +629,13 @@ var
     NumPix : Cardinal ;
     Gain : Double ;
 begin
-     Caption := 'MesoScan V1.8.7 ';
+     Caption := 'MesoScan V1.8.8 ';
      {$IFDEF WIN32}
      Caption := Caption + '(32 bit)';
     {$ELSE}
      Caption := Caption + '(64 bit)';
     {$IFEND}
-    Caption := Caption + ' 03/03/27';
+    Caption := Caption + ' 22/06/26';
      TempBuf := Nil ;
      DeviceNum := 1 ;
      LabIO.NIDAQAPI := NIDAQMX ;
@@ -742,6 +744,8 @@ begin
      BiDirectionalScan := True ;
      MaxScanRate := 100.0 ;
      MinPixelDwellTime := 5E-7 ;
+     NumIntervalsAveraged := 1 ;
+
      // Default galvo AO settings
      XGalvoAO := 0 ;          // X galvo on Dev1:AO0
      YGalvoAO := 1 ;          // Y galvo on Dev1:AO`
@@ -1171,7 +1175,6 @@ begin
      for i := 0 to MaxLasers-1 do Laser.LaserActive[i] := False ;
      LabIO.Close ;
      if ADCMap <> Nil then FreeMem(ADCMap) ;
-     if ADCBuf <> Nil then FreeMem(ADCBuf) ;
      if AvgBuf <> Nil then FreeMem(AvgBuf) ;
      if DACBuf <> Nil then FreeMem(DACBuf) ;
 //     if XZLineAverage <> Nil then FreeMem(XZLineAverage) ;
@@ -1208,16 +1211,22 @@ begin
     meStatus.Lines[0] := 'Wait: Creating XY scan waveform' ;
 
     // No. pixels in scan buffer
+    // Increase the no. of pixels in the X scan waveform so that it extends by 2xFieldEdge% beyond requested no. of pixels in the image frame
+
     NumXEdgePixels :=  Round(FieldEdge*FrameWidth) ;
     NumXPixels := FrameWidth + (2*NumXEdgePixels) ;
-    // Determine line scan time
-    PixelDwellTime := Max( 1.0/(MaxScanRate*NumXPixels*2), MinPixelDwellTime ) ;
-    LabIO.CheckSamplingInterval(DeviceNum,PixelDwellTime,1) ;
-    ScanSpeed := 1.0/(PixelDwellTime*NumXPixels) ;
+
+    // Ensure line scan time does not exceed maximum permissable rate of X galvo scan
+    ADCSamplingInterval := Max( 1.0/(MaxScanRate*NumXPixels*2), MinPixelDwellTime ) ;
+    LabIO.CheckSamplingInterval(DeviceNum,ADCSamplingInterval,1) ;
+    DACUpdateInterval := ADCSamplingInterval*NumIntervalsAveraged ;
+
+    ScanSpeed := 1.0/(DACUpdateInterval*NumXPixels) ;
     if not BidirectionalScan then ScanSpeed := ScanSpeed*0.5 ;
-    ScanInfo := format('%.3g lines/s Tdwell=%.3g us',[ScanSpeed,1E6*PixelDwellTime]);
-    LineScanTime := NumXPixels*PixelDwellTime ;
+    ScanInfo := format('%.3g lines/s Tdwell=%.3g us',[ScanSpeed,1E6*DACUpdateInterval]);
+    LineScanTime := NumXPixels*DACUpdateInterval ;
     if not BidirectionalScan then LineScanTime := LineScanTime*2.0 ;
+
     // Determine number of lines per Z step (for XZ mode)
     if cbImageMode.ItemIndex = XZMode then
        begin
@@ -1239,10 +1248,7 @@ begin
            end;
         end;
     NumPixels := NumXPixels*NumYPixels ;
-    // Allocate A/D buffer
-    if ADCBuf <> Nil then FreeMem( ADCBuf ) ;
-    NumBytes := Int64(NumPixels)*Int64(NumPMTChannels)*SizeOf(SmallInt) ;
-    ADCBuf := AllocMem( NumBytes ) ;
+
 
     // Allocate D/A waveform databuffer
     if DACBuf <> Nil then FreeMem( DACBuf ) ;
@@ -1412,7 +1418,7 @@ begin
                        else Inc(n) ;
            end ;
        end ;
-    iShift := Round(PhaseShift/PixelDwellTime) ;
+    iShift := Round(PhaseShift/DACUpdateInterval) ;
     if iShift >= 0 then
        begin
        n := 0 ;
@@ -1492,6 +1498,7 @@ begin
      SelectedRectBM.Bottom := Round((SelectedRect.Bottom - YTop)*YScaletoBM) ;
      // Display zomm area selection rectangle
      Bitmap.Canvas.Rectangle(SelectedRectBM);
+
      // Display square corner and mid-point tags
      DisplaySquare( Bitmap, SelectedRectBM.Left, SelectedRectBM.Top ) ;
      DisplaySquare( Bitmap, (SelectedRectBM.Left + SelectedRectBM.Right) div 2, SelectedRectBM.Top ) ;
@@ -1501,13 +1508,14 @@ begin
      DisplaySquare( Bitmap, SelectedRectBM.Left, SelectedRectBM.Bottom ) ;
      DisplaySquare( Bitmap, (SelectedRectBM.Left + SelectedRectBM.Right) div 2, SelectedRectBM.Bottom ) ;
      DisplaySquare( Bitmap, SelectedRectBM.Right, SelectedRectBM.Bottom ) ;
-     if (cbImageMode.ItemIndex = XYMode) or (cbImageMode.ItemIndex = XYZMode) then begin
+     if (cbImageMode.ItemIndex = XYMode) or (cbImageMode.ItemIndex = XYZMode) then
+        begin
         Bitmap.Canvas.Pen.Color := clRed ;
-        //Y := ((SelectedRectBM.Top + SelectedRectBM.Bottom) div 2) ;
         Y := Round(((SelectedRect.Top + SelectedRect.Bottom)*0.5 - YTop + 1)*YScaletoBM) ;
         Bitmap.Canvas.Polyline( [Point(0,Y),Point(Bitmap.Width-1,Y)]);
         Bitmap.Canvas.Pen.Color := clWhite ;
         end;
+
      Bitmap.Canvas.Pen.Color := clWhite ;
      Bitmap.Canvas.Brush.Style := bsSolid ;
      Bitmap.Canvas.Font.Color := clRed ;
@@ -1516,19 +1524,18 @@ begin
                    YTop*PixelsToMicronsY + ScanArea[iScanZoom].Top]);
      Bitmap.Canvas.TextOut( 0,0, s) ;
      s := format( '%.2f,%.2f um',
-                  [(XLeft +(BitMap.Width/XScaleToBM))*PixelsToMicronsX
-                   + ScanArea[iScanZoom].Left,
-                   (YTop + (BitMap.Height/YScaleToBM))*PixelsToMicronsY
-                   + ScanArea[iScanZoom].Top]);
+                  [(XLeft +(BitMap.Width/XScaleToBM))*PixelsToMicronsX + ScanArea[iScanZoom].Left,
+                   (YTop + (BitMap.Height/YScaleToBM))*PixelsToMicronsY + ScanArea[iScanZoom].Top]);
      Bitmap.Canvas.TextOut( BitMap.Width - Bitmap.Canvas.TextWidth(s) -1,
                             BitMap.Height - Bitmap.Canvas.TextHeight(s) -1,
                             s ) ;
      end ;
 
+
 procedure TMainFrm.DisplaySquare(
           Bitmap : TBitmap ;
-          X : Integer ;
-          Y : Integer ) ;
+          X : Integer ;      // Centre of square X
+          Y : Integer ) ;    // Centre of square Y
 const
     HalfWidth = 6 ;
 var
@@ -2133,8 +2140,8 @@ begin
 
     // Start A/D capture of PMT signals (timed by D/A updates)
     // -------------------------------------------------------
-    nSamples := Max(Round(10.0/PixelDwellTime) div NumXPixels,1)*NumXPixels ;
-    LabIO.ADCToMemoryExtScan( DeviceNum,AIList,AIVoltageRange,NumPMTChannels,NumXPixels*NumYPixels,False,DeviceNum ) ;
+    nSamples := Max(Round(10.0/ADCSamplingInterval) div NumXPixels,1)*NumXPixels ;
+    LabIO.StartADCAverage( DeviceNum,AIList,AIVoltageRange,NumPMTChannels,NumXPixels*NumYPixels,ADCSamplingInterval,False,DeviceNum ) ;
 
     // Start D/A waveform generation
     // -----------------------------
@@ -2144,7 +2151,7 @@ begin
                        2,
                        NumPixels,
                        NumPixelsinDACBuf,
-                       PixelDwellTime,
+                       DACUpdateInterval,
                        False,
                        False,
                        DeviceNum ) ;
@@ -2468,30 +2475,25 @@ begin
     //
     // Z stage rotary control dial
     //
-    if {ZStage.ZDialAvailable} false then
+    if (ZStage.ZDialAvailable = True) then
        begin
-       ZStepsPending := ZStage.GetZDialRotation + ZStepsPending ;
-       if (ZStepsPending <> 0.0) and (not ZStage.Moving) and (ZDialWaitCount <= 0) then
+       ZStage.ZDialStepsPending := ZStage.GetZDialRotation + ZStage.ZDialStepsPending ;
+       if (ZStage.ZDialStepsPending <> 0.0) and (not ZStage.Moving) and (ZStage.ZDialWaitCount <= 0) then
           begin
-          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStepsPending ) ;
-          ZStepsPending := 0.0 ;
-          ZDialWaitCount := 5 ;  // = 5 timer ticks = 0.5s
+          ZStage.MoveTo( ZStage.XPosition,ZStage.YPosition,ZStage.ZPosition + ZStage.ZDialStepsPending ) ;
+          ZStage.ZDialStepsPending := 0.0 ;
+          ZStage.ZDialWaitCount := 5 ;  // = 5 timer ticks = 0.5s
           end
        else
          begin
          // Decrement wait counter
-         ZDialWaitCount :=  Max( ZDialWaitCount - 1,0) ;
+         ZStage.ZDialWaitCount :=  Max( ZStage.ZDialWaitCount - 1,0) ;
          end;
        tbZPosition.Position := Round(ZStage.ZPosition) ;
        rbZDialCoarse.Checked := ZStage.ZDialCoarseStep ;
        rbZDialFine.Checked := not ZStage.ZDialCoarseStep ;
-       end
-     else
-       begin
-       // Start monitor of Z dial encoder pulses
-       ZStage.StartZDialADC ;
-       ZStepsPending := 0.0 ;
-       end;
+       end ;
+
      // Report stage position
      ZStage.UpdateZPosition ;
      edZTop.Text := format('%.1f um',[ZStage.ZPosition]) ;
@@ -2570,12 +2572,15 @@ procedure TMainFrm.GetImageFromPMT ;
 // ------------------
 // Get image from PMT
 // ------------------
+const
+    MaxNewPixels = 1000000;
 var
-    ch,iPix,iPointer,iPointerStep,iLine,nAvg,iAvg,AvgFrameStart : Integer ;
-    i,ADCStart,ADCEnd : NativeInt ;
+    i,ch,iPix,iPointer,iPointerStep,iLine,nAvg,iAvg,AvgFrameStart : Integer ;
     NewZSection,ZSect : Integer ;
+    NumNewSamples, EndPointer : Integer ;
     Sum,y : Integer ;
     j: Integer;
+    InBuf : PIntArray ;
 begin
 
     // Quit if scan not in progress
@@ -2583,33 +2588,40 @@ begin
     if not ScanningInProgress then exit ;
 
     // Read new A/D converter samples
-    if not LabIO.GetADCSamples( DeviceNum, ADCBuf^,ADCStart,ADCEnd ) then Exit ;
+     InBuf := AllocMem( MaxNewPixels*NumPMTChannels*SizeOf(Integer)) ;
+     if not LabIO.GetADCSamplesAndUpdateDAC( DeviceNum, InBuf, NumPMTChannels, MaxNewPixels*NumPMTChannels, NumIntervalsAveraged,NumNewSamples) then Exit ;
 
-    // Copy image from circular ADC buffer into 32 bit display buffer
-    // ---------------------------------------------------------------
+    // Map image from AvgBuf buffer into 32 bit display buffer
+    // --------------------------------------------------------
 
-//       outputdebugstring(pchar(format('ADCBuf start-end = %d, %d, %d, %d',
-//       [ADCBuf^[0],ADCBuf^[1],ADCBuf^[(NumPixels*NumPMTChannels)-2],ADCBuf^[(NumPixels*NumPMTChannels)-1]]))) ;
+    outputdebugstring(pchar(format('Zsection=%d ADCPointer=%d NumAverages= %d',[ZSection,ADCPointer,NumNewSamples])));
 
-    outputdebugstring(pchar(format('Zsection=%d ADCStart=%d NumAverages= %d',[ZSection,ADCStart,NumAverages])));
-
-    for i := ADCStart to ADCEnd do
+    EndPointer := NumPixels*NumPMTChannels -1 ;
+    for i := 0 to NumNewSamples-1 do
         begin
-        ADCPointer := i ;
-        AvgBuf^[i] := AvgBuf^[i] + ADCBuf^[i] {+ random(100)} {+ ZSection*1000} ;
 
-        iPix := i div NumPMTChannels ; // Pixel index
-        ch := i mod NumPMTChannels ;   // AI channel index
+        if ADCPointer > EndPointer then Break ;
 
-        iPointer := ADCMap^[iPix] ;
-        iPointerStep := ADCMap^[iPix+1] - iPointer ;
+        // Add to averaging buffer
+        AvgBuf^[ADCPointer] := AvgBuf^[ADCPointer] + InBuf^[i] {+ random(100)} {+ ZSection*1000} ;
+
+        // Pixel # and PMT channel for this A/D sample
+        iPix := ADCPointer div NumPMTChannels ; // Pixel index
+        ch := ADCPointer mod NumPMTChannels ;   // AI channel index
 
         // Average and add black level
-        y := InvertADCvalue[ch]*(AvgBuf^[i] div NumAverages) + BlackLevel ;
+        y := InvertADCvalue[ch]*(AvgBuf^[ADCPointer] div NumAverages) + BlackLevel ;
 
         // Keep within 16 bit limits
         if y  < 0 then y := 0 ;
         if y > ADCMaxValue then y := ADCmaxValue ;
+
+        // Mapping for this pixel into pImageBuf
+
+        iPointer := ADCMap^[iPix] ;
+        iPointerStep := ADCMap^[iPix+1] - iPointer ;
+
+        // Map to image buffer
 
         pImageBuf[ch]^[iPointer] := y  ;
         if Abs(iPointerStep) = 2 then
@@ -2618,7 +2630,11 @@ begin
            pImageBuf[ch]^[iPointer] := y ;
            end ;
 
+        Inc(ADCPointer) ;
+
         end ;
+
+    Freemem( InBuf ) ;
 
     // Copy image to display bitmap
     iLine := ADCPointer div (NumXPixels*NumPMTChannels) ;
@@ -2666,14 +2682,12 @@ begin
     case cbImageMode.ItemIndex of
        XYMode,XTMode :
          begin
-         meStatus.Lines[0] := format('Line %5d/%d (%.3f MB)',
-                              [iLine,FrameHeight,ADCPointer/1048576.0]);
+         meStatus.Lines[0] := format('Line %5d/%d (%.3f MB)',[iLine,FrameHeight,ADCPointer/1048576.0]);
          meStatus.Lines.Add(format('Average %d/%d',[NumRepeats,Round(edNumRepeats.Value)])) ;
          end;
        XYZMode :
          begin
-         meStatus.Lines[0] := format('Line %5d/%d (%.2f MB)',
-                              [iLine,FrameHeight,ADCPointer/1048576.0]);
+         meStatus.Lines[0] := format('Line %5d/%d (%.2f MB)',[iLine,FrameHeight,ADCPointer/1048576.0]);
          meStatus.Lines.Add(format('Average %d/%d',[NumRepeats,Round(edNumRepeats.Value)])) ;
          if ckKeepRepeats.Checked then ZSect := Ceil( (ZSection + 1) / edNumRepeats.Value)
                                   else ZSect := ZSection + 1 ;
@@ -3278,6 +3292,7 @@ begin
     AddElementBool( ProtNode, 'INVERTPMTSIGNAL', InvertPMTSignal ) ;
     AddElementDouble( ProtNode, 'MAXSCANRATE', MaxScanRate ) ;
     AddElementDouble( ProtNode, 'MINPIXELDWELLTIME', MinPixelDwellTime ) ;
+    AddElementINT( ProtNode, 'NUMINTERVALSAVERAGED', NumIntervalsAveraged ) ;
     AddElementInt( ProtNode, 'NUMREPEATS', Round(edNumRepeats.Value) ) ;
     AddElementInt( ProtNode, 'BLACKLEVEL', BlackLevel ) ;
     // X/Y galvo control ports
@@ -3341,6 +3356,7 @@ begin
     AddElementDouble( iNode, 'ZPOSITIONMIN', ZStage.ZPositionMin ) ;
     AddElementInt( iNode, 'STAGEPROTECTIONTTLTRIGGER', ZStage.StageProtectionTTLTrigger ) ;
     AddElementInt( iNode, 'ZSTAGEZDIALADCINPUTS', ZStage.ZDialADCInputs ) ;
+    AddElementInt( iNode, 'ZSTAGEZDIALTYPE', ZStage.ZDialType ) ;
     AddElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPCOARSE', ZStage.ZDialMicronsPerStepCoarse ) ;
     AddElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPMEDIUM', ZStage.ZDialMicronsPerStepMedium ) ;
     AddElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPFINE', ZStage.ZDialMicronsPerStepFine ) ;
@@ -3419,7 +3435,10 @@ begin
     ckRepeat.Checked := GetElementBool( ProtNode, 'REPEATSCANS', ckRepeat.Checked ) ;
     InvertPMTSignal := GetElementBool( ProtNode, 'INVERTPMTSIGNAL', InvertPMTSignal ) ;
     MaxScanRate := GetElementDouble( ProtNode, 'MAXSCANRATE', MaxScanRate ) ;
+
     MinPixelDwellTime := GetElementDouble( ProtNode, 'MINPIXELDWELLTIME', MinPixelDwellTime ) ;
+    NumIntervalsAveraged := GetElementINT( ProtNode, 'NUMINTERVALSAVERAGED', NumIntervalsAveraged ) ;
+
     edNumRepeats.Value := GetElementInt( ProtNode, 'NUMREPEATS', Round(edNumRepeats.Value) ) ;
     BlackLevel := GetElementInt( ProtNode, 'BLACKLEVEL', BlackLevel ) ;
     // X/Y galvo control ports
@@ -3499,6 +3518,7 @@ begin
       ZStage.ZPositionMax := GetElementDouble( iNode, 'ZPOSITIONMAX', ZStage.ZPositionMax ) ;
       ZStage.ZPositionMin := GetElementDouble( iNode, 'ZPOSITIONMIN', ZStage.ZPositionMin ) ;
       ZStage.StageProtectionTTLTrigger := GetElementInt( iNode, 'STAGEPROTECTIONTTLTRIGGER', ZStage.StageProtectionTTLTrigger ) ;
+      ZStage.ZDialType := GetElementInt( iNode, 'ZSTAGEZDIALTYPE', ZStage.ZDialType ) ;
       ZStage.ZDialADCInputs := GetElementInt( iNode, 'ZSTAGEZDIALADCINPUTS', ZStage.ZDialADCInputs ) ;
       ZStage.ZDialMicronsPerStepCoarse := GetElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPCOARSE', ZStage.ZDialMicronsPerStepCoarse ) ;
       ZStage.ZDialMicronsPerStepMedium := GetElementDouble( iNode, 'ZSTAGEZDIALMICRONSPERSTEPMEDIUM', ZStage.ZDialMicronsPerStepMedium ) ;
@@ -3647,13 +3667,26 @@ begin
          end;
      end;
 
+
+procedure TMainFrm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+// ------------------------
+// Process keyboard commands
+// -------------------------
+begin
+
+    // Send key to ZDial for processing
+    ZStage.ZDialIncrement( Key, Shift ) ;
+
+end;
+
+
 procedure TMainFrm.AddElementDouble(
           ParentNode : IXMLNode ;
           NodeName : String ;
           Value : Double
           ) ;
 // -------------------------------
-// Add element with value to node
+// Add element with value to node                            U
 // -------------------------------
 var
    ChildNode : IXMLNode;
@@ -3833,6 +3866,7 @@ begin
       end ;
     end ;
 
+
 procedure TMainFrm.PlotHistogram ;
 // ---------------------------------------------------------
 // Calculate and set display for maximum grey scale contrast
@@ -3846,6 +3880,7 @@ var
      MaxLine : Integer ;
   iLine: Integer;
 begin
+
     //if not ScanningInProgress then exit ;
     ch := 0 ;
     if pImageBuf[ch] = Nil then Exit ;
@@ -3858,8 +3893,10 @@ begin
        MaxLine := FrameHeight - 1 ;
        LastLineAddedToHistogram := 1 ;
        end;
+
     if MaxLine < 0 then Exit ;
     if MaxLine >= FrameHeight then Exit ;
+
 //    outputdebugstring(pchar(format('LinesAvailableForDisplay=%d',[MaxLine])));
     // Clear histogram (if in line histogram mode
     if rbLineHistogram.Checked then
@@ -3867,6 +3904,7 @@ begin
        ClearHistogram ;
        LastLineAddedToHistogram := MaxLine ;
        end;
+
     for ch := 0 to NumPMTChannels-1 do
         begin
         for iLine := LastLineAddedToHistogram to MaxLine do
@@ -3886,7 +3924,9 @@ begin
                 end ;
             end ;
         end;
+
     LastLineAddedToHistogram := MaxLine ;
+
     if rbYAxisLog.Checked then
        begin
        // Logarithmic Y axis
@@ -3902,6 +3942,7 @@ begin
        plHistogram.yAxisMax := YMax ;
        plHistogram.yAxisTick := YMax ;
        end;
+
     plHistogram.ClearPlot ;
     for ch := 0 to NumPMTChannels-1 do
         begin
@@ -3917,6 +3958,7 @@ begin
            end ;
         end ;
 end ;
+
 
 procedure TMainFrm.ClearHistogram ;
 // -----------------------
@@ -3936,6 +3978,8 @@ begin
     YMax := FrameWidth*0.1 ;
     if rbLineHistogram.Checked then YMax := YMax*FrameHeight*0.1 ;
     end;
+
+
 procedure TMainFrm.CreateHistogramPlot ;
 // ------------------------------
 // Create plot of image histogram

@@ -51,7 +51,7 @@ object SettingsFrm: TSettingsFrm
     Top = 8
     Width = 761
     Height = 409
-    ActivePage = PMTTab
+    ActivePage = ScanTab
     TabOrder = 2
     object ScanTab: TTabSheet
       Caption = 'Scanning'
@@ -235,12 +235,12 @@ object SettingsFrm: TSettingsFrm
           ParentFont = False
         end
         object Label9: TLabel
-          Left = 48
+          Left = 37
           Top = 196
-          Width = 117
+          Width = 128
           Height = 16
           Alignment = taRightJustify
-          Caption = 'Min. pixel dwell time'
+          Caption = 'ADC Sampling Interval'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -13
@@ -276,9 +276,23 @@ object SettingsFrm: TSettingsFrm
           Font.Style = []
           ParentFont = False
         end
-        object ckCorrectSineWaveDistortion: TCheckBox
-          Left = 55
+        object Label49: TLabel
+          Left = 33
           Top = 226
+          Width = 130
+          Height = 16
+          Alignment = taRightJustify
+          Caption = 'No. Intervals Averaged'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+        end
+        object ckCorrectSineWaveDistortion: TCheckBox
+          Left = 63
+          Top = 256
           Width = 201
           Height = 15
           Alignment = taLeftJustify
@@ -364,11 +378,14 @@ object SettingsFrm: TSettingsFrm
           LoLimit = 1.000000000000000000
           HiLimit = 500.000000000000000000
         end
-        object edMinPixelDwellTime: TValidatedEdit
+        object edADCSamplingInterval: TValidatedEdit
           Left = 169
           Top = 196
           Width = 90
           Height = 24
+          Hint = 
+            'A/D Converter sampling interval (should be set the same as the P' +
+            'MT integrator response time)'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -13
@@ -423,6 +440,40 @@ object SettingsFrm: TSettingsFrm
           NumberFormat = '%.0f'
           LoLimit = -1.000000015047466E30
           HiLimit = 0.200000002980232200
+        end
+        object CheckBox1: TCheckBox
+          Left = 58
+          Top = 280
+          Width = 201
+          Height = 15
+          Alignment = taLeftJustify
+          Caption = 'Correct Sine Wave Distortion'
+          Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
+          State = cbChecked
+          TabOrder = 8
+        end
+        object edNumIntervalsAveraged: TValidatedEdit
+          Left = 169
+          Top = 226
+          Width = 90
+          Height = 24
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          Text = ' 1 '
+          Value = 1.000000000000000000
+          Scale = 1.000000000000000000
+          NumberFormat = '%.0f'
+          LoLimit = 1.000000000000000000
+          HiLimit = 100.000000000000000000
         end
       end
       object gpDevices: TGroupBox
@@ -671,7 +722,7 @@ object SettingsFrm: TSettingsFrm
           Scale = 100.000000000000000000
           Units = '%'
           NumberFormat = '%.0f'
-          LoLimit = 0.009999999776482582
+          LoLimit = 0.100000001490116100
           HiLimit = 1.000000000000000000
         end
       end
@@ -1679,40 +1730,40 @@ object SettingsFrm: TSettingsFrm
       end
       object gpZPositionDial: TGroupBox
         Left = 244
-        Top = 10
+        Top = 3
         Width = 233
-        Height = 191
+        Height = 198
         Caption = 'Z Position Dial '
         TabOrder = 2
         object Label38: TLabel
           Left = 31
-          Top = 44
+          Top = 88
           Width = 110
           Height = 13
           Alignment = taRightJustify
           Caption = 'Microns / step (coarse)'
           WordWrap = True
         end
-        object Label39: TLabel
-          Left = 20
-          Top = 19
-          Width = 94
-          Height = 13
-          Alignment = taRightJustify
-          Caption = 'Encoder A/D Inputs'
-        end
         object Label41: TLabel
           Left = 45
-          Top = 71
+          Top = 115
           Width = 96
           Height = 13
           Alignment = taRightJustify
           Caption = 'Microns / step (fine)'
           WordWrap = True
         end
+        object lbZDialType: TLabel
+          Left = 82
+          Top = 19
+          Width = 24
+          Height = 13
+          Alignment = taRightJustify
+          Caption = 'Type'
+        end
         object edZDialMicronsPerStepCoarse: TValidatedEdit
           Left = 160
-          Top = 43
+          Top = 87
           Width = 57
           Height = 21
           Hint = 'Microns per step of Z dial rotational encoder'
@@ -1725,17 +1776,9 @@ object SettingsFrm: TSettingsFrm
           LoLimit = 10.000000000000000000
           HiLimit = 250.000000000000000000
         end
-        object cbZDialADCInputs: TComboBox
-          Left = 120
-          Top = 16
-          Width = 97
-          Height = 21
-          Style = csDropDownList
-          TabOrder = 1
-        end
         object edZDialMicronsPerStepFine: TValidatedEdit
           Left = 160
-          Top = 70
+          Top = 114
           Width = 57
           Height = 21
           Hint = 'Microns per step of Z dial rotational encoder'
@@ -1747,6 +1790,44 @@ object SettingsFrm: TSettingsFrm
           NumberFormat = '%.1f'
           LoLimit = 0.100000001490116100
           HiLimit = 250.000000000000000000
+        end
+        object pnZDialAI: TPanel
+          Left = 12
+          Top = 49
+          Width = 206
+          Height = 33
+          BevelOuter = bvNone
+          Color = clWhite
+          ParentBackground = False
+          TabOrder = 2
+          DesignSize = (
+            206
+            33)
+          object Label39: TLabel
+            Left = 4
+            Top = 0
+            Width = 94
+            Height = 13
+            Alignment = taRightJustify
+            Caption = 'Encoder A/D Inputs'
+          end
+          object cbZDialADCInputs: TComboBox
+            Left = 108
+            Top = 0
+            Width = 97
+            Height = 21
+            Style = csDropDownList
+            Anchors = [akTop, akRight]
+            TabOrder = 0
+          end
+        end
+        object cbZDialType: TComboBox
+          Left = 120
+          Top = 16
+          Width = 97
+          Height = 21
+          Style = csDropDownList
+          TabOrder = 3
         end
       end
       object gpPriorCommands: TGroupBox

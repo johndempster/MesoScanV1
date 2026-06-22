@@ -42,7 +42,7 @@ type
     edXVoltsPerMicron: TValidatedEdit;
     edYVoltsPerMicron: TValidatedEdit;
     edMaxScanRate: TValidatedEdit;
-    edMinPixelDwellTime: TValidatedEdit;
+    edADCSamplingInterval: TValidatedEdit;
     edFullFieldWidthMicrons: TValidatedEdit;
     edFieldEdge: TValidatedEdit;
     Label4: TLabel;
@@ -143,8 +143,6 @@ type
     gpZPositionDial: TGroupBox;
     Label38: TLabel;
     edZDialMicronsPerStepCoarse: TValidatedEdit;
-    Label39: TLabel;
-    cbZDialADCInputs: TComboBox;
     edZDialMicronsPerStepFine: TValidatedEdit;
     Label41: TLabel;
     gpPriorCommands: TGroupBox;
@@ -176,6 +174,14 @@ type
     ckPMT2InvertSignal: TCheckBox;
     ckPMT3InvertSignal: TCheckBox;
     Label48: TLabel;
+    CheckBox1: TCheckBox;
+    Label49: TLabel;
+    edNumIntervalsAveraged: TValidatedEdit;
+    pnZDialAI: TPanel;
+    Label39: TLabel;
+    cbZDialADCInputs: TComboBox;
+    lbZDialType: TLabel;
+    cbZDialType: TComboBox;
     procedure FormShow(Sender: TObject);
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
@@ -233,7 +239,9 @@ begin
     edPhaseShift.Value := MainFrm.PhaseShift ;
 //    ckBidirectionalScan.Checked :=  MainFrm.BidirectionalScan ;
     edMaxScanRate.Value := MainFrm.MaxScanRate ;
-    edMinPixelDwellTime.Value := MainFrm.MinPixelDwellTime ;
+    edADCSamplingInterval.Value := MainFrm.MinPixelDwellTime ;
+    edNumIntervalsAveraged.Value := MainFrm.NumIntervalsAveraged ;
+
     edXVoltsPerMicron.Value := MainFrm.XVoltsPerMicron ;
     edYVoltsPerMicron.Value := MainFrm.YVoltsPerMicron ;
     ckCorrectSineWaveDistortion.Checked := MainFrm.CorrectSineWaveDistortion ;
@@ -293,6 +301,9 @@ begin
     edStageProtectionTTLTrigger.Value := ZStage.StageProtectionTTLTrigger ;
 
     // Z rotational encoder dial
+    ZStage.GetZDialTypes( cbZDialType.Items ) ;
+    cbZDialType.ItemIndex := ZStage.ZDialType ;
+
     ZStage.GetZDialADCInputs( cbZDialADCInputs.Items ) ;
     cbZDialADCInputs.ItemIndex := cbZDialADCInputs.Items.IndexOfObject(Tobject(ZStage.ZDialADCInputs)) ;
 
@@ -325,6 +336,7 @@ begin
         end ;
     end;
 
+
 procedure TSettingsFrm.bOKClick(Sender: TObject);
 // --------------------------
 // Update program settings
@@ -342,7 +354,9 @@ begin
     MainFrm.FocusModeRegion := edFocusModeRegion.Value ;
 
     MainFrm.MaxScanRate := edMaxScanRate.Value ;
-    MainFrm.MinPixelDwellTime := edMinPixelDwellTime.Value ;
+    MainFrm.MinPixelDwellTime := edADCSamplingInterval.Value ;
+    MainFrm.NumIntervalsAveraged := Round( edNumIntervalsAveraged.Value) ;
+
     MainFrm.XVoltsPerMicron := edXVoltsPerMicron.Value ;
     MainFrm.YVoltsPerMicron := edYVoltsPerMicron.Value ;
     MainFrm.PhaseShift := edPhaseShift.Value ;
@@ -370,6 +384,7 @@ begin
        MainFrm.SetScanZoomToFullField ;
        end;
     MainFrm.InvertPMTSignal := ckInvertPMTSignal.Checked ;
+
     // Set laser control line menus (for external control)
     GetLaser( 0, edLaserName0, cbLaserActiveControl0, cbLaserIntensityControl0, edLaserVMax0 ) ;
     GetLaser( 1, edLaserName1, cbLaserActiveControl1, cbLaserIntensityControl1, edLaserVMax1 ) ;
@@ -386,12 +401,12 @@ begin
     ZStage.ZPositionMin := edZPositionMin.Value ;
     ZStage.ZPositionMax := edZPositionMax.Value ;
     ZStage.StageProtectionTTLTrigger := Round(edStageProtectionTTLTrigger.Value) ;
+
     // Z rotational encoder dial
-    ZStage.StopZDialADC ;
+    ZStage.ZDialType := cbZDialType.ItemIndex ;
     ZStage.ZDialADCInputs := Integer(cbZDialADCInputs.Items.Objects[Max(cbZDialADCInputs.ItemIndex,0)]) ;
     ZStage.ZDialMicronsPerStepCoarse := edZDialMicronsPerStepCoarse.Value ;
     ZStage.ZDialMicronsPerStepFine := edZDialMicronsPerStepFine.Value ;
-    ZStage.StartZDialADC ;
 
     // X/Y galvo control outputs
     MainFrm.XGalvoAO := cbXGalvoControl.ItemIndex ;

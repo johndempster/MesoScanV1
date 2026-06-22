@@ -38,7 +38,7 @@ unit ZStageUnit;
 interface
 
 uses
-  System.SysUtils, System.Classes, Dialogs, math, strutils, Windows, System.Win.Registry, forms ;
+  System.SysUtils, System.Classes, Dialogs, math, strutils, Windows, System.Win.Registry, forms, System.UITypes ;
 
 type
   TZStage = class(TDataModule)
@@ -65,7 +65,10 @@ type
     RequestedZPos : Double ;   // Intermediate Z position
     StageInitRequired : Boolean ; // Stage needs to be initialised
 
-
+    FZDialType : Integer ;                 // Type of Z stage control dial in use
+    FZDialAvailable : Boolean ;            // TRUE = Z dial controller available for use
+    FZDialADCInputs : Integer ;            // LABIO Resource number for encoder A/D inouts
+    ZDialPulseCount : Integer ;                      // No. of Zdial steps waiting to be processed
 
     OverLapStructure : POVERLAPPED ;
 
@@ -77,6 +80,8 @@ type
     procedure SetControlPort( Value : DWord ) ;
     procedure SetBaudRate( Value : DWord ) ;
     procedure SetStageType( Value : Integer ) ;
+
+    function GetZDialAvailable : Boolean ;
 
     procedure UpdateZPositionPrior ;
     procedure UpdateZPositionPZ ;
@@ -94,6 +99,7 @@ type
              ) : Boolean ;
     procedure Wait( Delay : double ) ;
     function GetAvailableCOMPorts: TStringList;
+
   public
     { Public declarations }
     XPosition : Double ;     // X position (um)
@@ -112,13 +118,15 @@ type
     StageProtectionTTLTrigger : Integer ; // Stage protection trigger
                                           // 1= on TTL high, 0 = on TTL low
 
-    ZDialAvailable : Boolean ;            // TRUE = Z dial (rotary encoder) available for use
-    ZDialADCInputs : Integer ;            // LABIO Resource number for encoder A/D inouts
+
+
     ZDialMicronsPerStepCoarse : Double ;  // Microns movement per step of rotational encoder (coarse)
     ZDialMicronsPerStepMedium : Double ;  // Microns movement per step of rotational encoder (medium)
     ZDialMicronsPerStepFine : Double ;    // Microns movement per step of rotational encoder (fine)
     ZDialCoarseStep : Boolean ;           // TRUE = Z dial on coarse step setting
     A_State : Boolean ;                   // Z dial encoder current A state
+    ZDialStepsPending : Double ;         // No. of Z step pending
+    ZDialWaitCount : Integer ;            // Z dial timer tick wait counter before initiating Z stage move
 
     procedure Open ;
     procedure Close ;
@@ -129,10 +137,16 @@ type
                       ) ;
     procedure GetZStageTypes( List : TStrings ) ;
     procedure GetControlPorts( List : TStrings ) ;
+
+    procedure GetZDialTypes( List : TStrings ) ;
     procedure GetZDialADCInputs( List : TStrings ) ;
     procedure StartZDialADC ;
     procedure StopZDialADC ;
     function GetZDialRotation : double ;
+    procedure SetZDialType( iType : Integer ) ;
+    procedure SetZDIalADCInputs( iValue : Integer ) ;
+    procedure ZDialIncrement( Key : Word  ; Shift : TShiftState ) ;
+
     procedure PriorSendCommand( CommandIn : string ) ;
     function PriorReadReply : string ;
 
@@ -141,6 +155,9 @@ type
     Property BaudRate : DWORD read FBaudRate write SetBaudRate ;
     Property StageType : Integer read FStageType write SetStageType ;
     Property ScaleFactorUnits : string read GetScaleFactorUnits ;
+    Property ZDialAvailable : Boolean read GetZDialAvailable ;
+    Property ZDialType : Integer read FZDialType write SetZDialType ;
+    Property ZDIalADCInputs : Integer read FZDIalADCInputs Write SetZDIalADCInputs ;
   end;
 
 var
@@ -169,6 +186,9 @@ const
     YMaxStep = 10000.0 ;
     ZMaxStep = 10000.0 ;
 
+    ZDialNone = 0 ;
+    ZDialUSBController = 1 ;
+    ZDialRotaryEncoder = 2 ;
     ZDialNumADCChannels = 3 ;
     ZDialMaxADCPoints = 10000 ;
 
@@ -203,12 +223,15 @@ begin
     iZLog := 0 ;
     Moving := False ;
 
+    FZDialType := 0 ;                            // Type of Z dial (0=None) ;
     ZDialADCInputs := MaxResources ;
     ZDialMicronsPerStepCoarse := 100.0 ;        // Microns movement per step of rotational encoder (coarse)
     ZDialMicronsPerStepMedium := 10.0 ;         // Microns movement per step of rotational encoder (medium)
     ZDialMicronsPerStepFine := 0.2 ;            // Microns movement per step of rotational encoder (fine)
-    ZDialAvailable := False ;
-
+    FZDialAvailable := False ;
+    ZDialStepsPending := 0.0 ;                  // No. of Z step pending
+    ZDialWaitCount := 0 ;                       // Z dial timer tick wait counter before initiating Z stage move
+    ZDialPulseCount := 0 ;                      // Count of Z dial steps waiting to be processed
 
     MoveToRequest := False ;
     StageInitRequired := False ;
@@ -264,6 +287,20 @@ begin
           end ;
         end;
      end;
+
+
+procedure TZStage.GetZDialTypes( List : TStrings ) ;
+// -------------------------------------
+// Get list of available Z dial controllers
+// --------------------------------------
+begin
+
+     List.Clear ;
+     List.Add('None') ;
+     List.Add('USB Jog Dial') ;
+     List.add('Rotary Encoder') ;
+
+end;
 
 
 procedure TZStage.GetZDialADCInputs( List : TStrings ) ;
@@ -791,6 +828,28 @@ begin
       Open ;
       end;
 
+
+function TZStage.GetZDialAvailable : Boolean ;
+// ------------------------------------------------------
+// Return TRUE if dial control of Z stage available
+// ------------------------------------------------------
+begin
+
+    case FZDIalType of
+
+         ZDialUSBController : FZDialAvailable := True ;
+
+         ZDialRotaryEncoder : if not FZDialAvailable then StartZDialADC ;
+
+         else FZDialAvailable := False ;
+
+    end;
+
+    Result := FZDialAvailable ;
+
+    end;
+
+
 procedure TZStage.UpdateZPositionPZ ;
 // ----------------------------------
 // Update position of Z stage (Piezo)
@@ -862,15 +921,22 @@ procedure TZStage.StartZDialADC ;
 // ------------------------------------------
 begin
 
-      if ZDialADCInputs >= MaxResources then Exit ;
+      if ZDialADCInputs >= MaxResources then
+         begin
+         FZDialAvailable := False ;
+         Exit ;
+         end;
 
       // ACcquire 3 channels (AI0-AI2), into 10000 sample circular buffer at 1ms intervals
       // AI0=Encoder A, AI1=Encoder B, AI2=Coarse/fine switch
       // Sampling at 3.3kHz per channel to ensure pulses detected correctly when dial rotated quickly
 
-      LabIO.ADCToMemory( LabIO.Resource[ZDialADCInputs].Device,ZDialNumADCChannels,ZDialMaxADCPoints,3E-4, True) ;
+      LabIO.StartADC( LabIO.Resource[ZDialADCInputs].Device,ZDialNumADCChannels,ZDialMaxADCPoints,3E-4, True) ;
 
-      ZDialAvailable := True ;
+      ZDialStepsPending := 0.0 ;
+      ZDialWaitCount := 0 ;
+      ZDialPulseCount := 0 ;
+      FZDialAvailable := True ;
       A_State := False ;
 
 end;
@@ -880,10 +946,16 @@ procedure TZStage.StopZDialADC ;
 // ------------------------------------------
 // Stop A/D monitor of Z dial encoder pulses
 // ------------------------------------------
+var
+    Device : Integer ;
 begin
-     ZDialAvailable := False ;
+
      if ZDialADCInputs >= MaxResources then Exit ;
-     LabIO.StopADC(LabIO.Resource[ZDialADCInputs].Device) ;
+
+     Device := LabIO.Resource[ZDialADCInputs].Device ;
+     if LabIO.ADCActive[Device] then LabIO.StopADC(Device) ;
+     FZDialAvailable := False ;
+
 end;
 
 
@@ -894,59 +966,115 @@ function TZStage.GetZDialRotation : double ;
 const
     VThreshold = 2.5 ;
 var
-    ADCBuf : PSmallIntArray ;
-    NumSamples : Integer ;
-    i, PulseCount,Device : Integer;
-    VScale,V_A,V_B,V_Coarse : Double ;
+    ADCBuf : PIntArray ;
+    MaxADCBuf,NumSamplesPerChannel : Integer ;
+    i, Device : Integer;
+    V_A,V_B,V_Coarse : Double ;
     A,B : Boolean ;
     s : string ;
 begin
 
      Result := 0.0 ;
      if not ZDialAvailable then Exit ;
-     Device := LabIO.Resource[ZDialADCInputs].Device ;
 
+     if FZDialType = ZDialRotaryEncoder then
+        begin
 
-     ADCBuf := AllocMem( ZDialNumADCChannels*ZDialMaxADCPoints*SizeOf(SmallInt)) ;
+        Device := LabIO.Resource[ZDialADCInputs].Device ;
 
-     LabIO.GetNewADCSamples( Device,
-                             ADCBuf,
-                             NumSamples,
-                             ZDialNumADCChannels,
-                             ZDialMaxADCPoints ) ;
+        MaxADCBuf := ZDialMaxADCPoints*ZDialNumADCChannels ;
+        ADCBuf := AllocMem( MaxADCBuf*SizeOf(Integer)) ;
 
-     VScale := LabIO.ADCVoltageRanges[Device][0] / LabIO.ADCMaxValue[Device] ;
-     PulseCount := 0 ;
-     for i := 0 to NumSamples-1 do
-         begin
-         // Encoder A channel
-         V_A := VScale*ADCBuf[i*ZDialNumADCChannels] ;
-         if V_A > VThreshold then A := True
-                             else A := False ;
-         // Encoder B channel
-         V_B := VScale*ADCBuf[i*ZDialNumADCChannels+1] ;
-         if V_B > VThreshold then B := True
-                             else B := False ;
+        // Get latest A/D samples acquired
+        LabIO.GetADCSamples( Device, ADCBuf, ZDialNumADCChannels, MaxADCBuf, NumSamplesPerChannel ) ;
 
-         // Coarse/fine movement switch
-         V_Coarse := VScale*ADCBuf[i*ZDialNumADCChannels+2] ;
-         if V_Coarse > VThreshold then ZDialCoarseStep := True
-                                  else ZDialCoarseStep := False ;
-
-         if (A_state = False) and (A = True) then
+        ZDialPulseCount := 0 ;
+        for i := 0 to NumSamplesPerChannel-1 do
             begin
-            if B = True then Dec(PulseCount)
-                        else Inc(PulseCount) ;
-            end;
-         A_state := A ;
-         end;
 
-     Result := PulseCount ;
+            // Encoder A channel
+            V_A := ADCBuf[i*ZDialNumADCChannels] / LabIO.ADCVoltageToInteger[Device,0] ;
+            if V_A > VThreshold then A := True
+                                else A := False ;
+            // Encoder B channel
+            V_B := ADCBuf[i*ZDialNumADCChannels+1] / LabIO.ADCVoltageToInteger[Device,1] ;
+            if V_B > VThreshold then B := True
+                                else B := False ;
+
+            // Coarse/fine movement switch
+            V_Coarse := ADCBuf[i*ZDialNumADCChannels+2] / LabIO.ADCVoltageToInteger[Device,2] ;
+            if V_Coarse > VThreshold then ZDialCoarseStep := True
+                                     else ZDialCoarseStep := False ;
+
+            if (A_state = False) and (A = True) then
+               begin
+               if B = True then Dec(ZDialPulseCount)
+                           else Inc(ZDialPulseCount) ;
+               end;
+            A_state := A ;
+            end;
+
+        FreeMem(ADCBuf) ;
+
+        end;
+
+//     outputdebugstring(pchar(format('GetZDialRotation: PulseCount= %d V_A=%.1f V_B=%.1f',[PulseCount,V_A,V_B])));
+
+     Result := ZDialPulseCount ;
      if ZDialCoarseStep then Result := Result*ZDialMicronsPerStepCoarse
                         else Result := Result*ZDialMicronsPerStepFine ;
+     ZDialPulseCount := 0 ;
 
-     FreeMem(ADCBuf) ;
 end;
+
+
+procedure TZStage.ZDialIncrement( Key : Word ; Shift : TShiftState ) ;
+// ----------------------------------------------------
+// Increment/decrement Z dial position (USB Controller)
+// ----------------------------------------------------
+begin
+
+    if FZDialType = ZDialUSBController then
+       begin
+       case Key of
+         vkRIGHT : Inc(ZDialPulseCount) ;
+         vkLEFT : Dec(ZDialPulseCount) ;
+         vkC : ZDialCoarseStep := True ;
+         vkF : ZDialCoarseStep := False ;
+         end ;
+       end;
+
+end;
+
+procedure TZStage.SetZDialType( iType : Integer ) ;
+// ----------------------------------------
+// Set the type of Z dial controller in use
+// ----------------------------------------
+begin
+
+     // Stop A/D conversion if in use
+     if (FZDialType = ZDialRotaryEncoder) then StopZDialADC ;
+
+     FZDialType := iType ;
+
+     // Start A/D conversion of rotaty encode outputs
+     if (FZDialType = ZDialRotaryEncoder) then StartZDialADC ;
+
+end;
+
+
+procedure TZStage.SetZDIalADCInputs( iValue : Integer ) ;
+// --------------------------------------------
+// Set A/D inputs used to ready rotaoty encoder
+// --------------------------------------------
+begin
+
+     StopZDialADC ;
+     FZDIalADCInputs := iValue ;
+     StartZDialADC ;
+
+end;
+
 
 
 procedure TZStage.PriorSendCommand( CommandIn : string ) ;

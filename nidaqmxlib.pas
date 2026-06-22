@@ -1633,6 +1633,11 @@ TDAQmxSetReadReadAllAvailSamp= function(
                  Value : Boolean
                   ) : Integer ; stdcall  ;
 
+TDAQmxGetReadAvailSampPerChan= function(
+                                    TaskHandle : NativeInt ;
+                                    var NumSamples : Cardinal
+                                    ) : Integer ; stdcall  ;
+
 TDAQmxGetSampClkRate = function(
                        TaskHandle : NativeInt ;
                        var Value : Double
@@ -1837,6 +1842,7 @@ var
 
     DAQmxGetReadReadAllAvailSamp : TDAQmxGetReadReadAllAvailSamp ;
     DAQmxSetReadReadAllAvailSamp : TDAQmxSetReadReadAllAvailSamp ;
+    DAQmxGetReadAvailSampPerChan : TDAQmxGetReadAvailSampPerChan ;
 
     DAQmxGetDevProductType : TDAQmxGetDevProductType ;
     DAQmxGetSampClkRate : TDAQmxGetSampClkRate ;
@@ -2001,6 +2007,7 @@ begin
 
         @DAQmxGetReadReadAllAvailSamp := NIDAQMX_LoadProcedure( LibraryHnd, 'DAQmxGetReadReadAllAvailSamp' ) ;
         @DAQmxSetReadReadAllAvailSamp := NIDAQMX_LoadProcedure( LibraryHnd, 'DAQmxSetReadReadAllAvailSamp' ) ;
+        @DAQmxGetReadAvailSampPerChan := NIDAQMX_LoadProcedure( LibraryHnd, 'DAQmxGetReadAvailSampPerChan' ) ;
 
         @DAQmxGetDevProductType := NIDAQMX_LoadProcedure( LibraryHnd, 'DAQmxGetDevProductType' ) ;
         @DAQmxGetSampClkRate := NIDAQMX_LoadProcedure( LibraryHnd, 'DAQmxGetSampClkRate' ) ;
